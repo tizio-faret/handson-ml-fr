@@ -1,0 +1,11 @@
+datasets/
+__marimo__/
+
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+.DS_Store
+
+district_cluster_plot.png
