@@ -1709,7 +1709,7 @@ def _(mo):
 
     On présente un moyen simple (package `joblib`) de sauvegarder un modèle.
 
-    ```
+    ```python
     import joblib
 
     joblib.dump(final_model, "my_california_housing_model.pkl")
@@ -1717,7 +1717,7 @@ def _(mo):
 
     On peut ensuite déployer le modèle en production plus tard pour effectuer des prédictions.
 
-    ```
+    ```python
     # import joblib
     # from sklearn.cluster import KMeans
     # from sklearn.base import BaseEstimator, TransformerMixin
