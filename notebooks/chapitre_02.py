@@ -1,7 +1,17 @@
 import marimo
 
-__generated_with = "0.23.5"
+__generated_with = "0.23.8"
 app = marimo.App(width="medium", auto_download=["html"])
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    # Chapitre 2 - Projet ML de bout en bout
+
+    ---
+    """)
+    return
 
 
 @app.cell(hide_code=True)
@@ -19,23 +29,10 @@ def _():
     return (mo,)
 
 
-@app.cell
-def _():
-    import sys
-    assert sys.version_info >= (3,7)
-
-    from packaging import version
-    import sklearn
-
-    # On vérifie que la version de Scikit-Learn est >= à 1.0.1
-    assert version.parse(sklearn.__version__) >= version.parse("1.0.1")
-    return (sys,)
-
-
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    # Récupération et découverte des données
+    # I. Récupération et découverte des données
 
     On télécharge le jeu de données *California Housing*, on le charge dans un DataFrame, puis on l'explore brièvement.
     """)
@@ -43,7 +40,9 @@ def _(mo):
 
 
 @app.cell
-async def _(sys):
+async def _():
+    import sys
+    import sklearn
     import tarfile
     from pathlib import Path
     import pandas as pd
@@ -75,7 +74,7 @@ async def _(sys):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ## Premier aperçu des distributions
+    ## A. Premier aperçu des distributions
 
     On trace l'histogramme de chaque variable numérique pour visualiser les ordres de grandeur et la forme des distributions.
     """)
@@ -95,9 +94,9 @@ def _(housing):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    # Création du jeu de test
+    # II. Création du jeu de test
 
-    ## Séparation aléatoire naïve
+    ## A. Séparation aléatoire naïve
 
     On veut répartir aléatoirement les données en deux datasets (training set et test set).
     On propose une première implémentation naïve de cette répartition.
@@ -129,7 +128,7 @@ def _(mo):
 
     ---
 
-    ## Séparation reproductible par hachage
+    ## B. Séparation reproductible par hachage
 
     Cette simple séparation aléatoire pose problème : **à chaque exécution, le jeu de test change, et le modèle finit par "voir" l'ensemble des données**.
 
@@ -177,7 +176,7 @@ def _(mo):
 
     ---
 
-    ## Échantillonnage stratifié
+    ## C. Échantillonnage stratifié
 
     On veut maintenant tester la représentativité du test_set vis à vis de la feature `median_income`, que l'on considère très importante pour la prédiction de prix de l'immobilier.
 
@@ -295,11 +294,11 @@ def _(strat_test_set_full, strat_train_set_full):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    # Exploration et visualisation des données
+    # III. Exploration et visualisation des données
 
     Avant de préparer les données pour l'apprentissage, on les explore sur une copie du jeu d'entraînement, ce qui permet de manipuler les données sans risque.
 
-    ## Visualisation géographique des données
+    ## A. Visualisation géographique des données
     """)
     return
 
@@ -334,7 +333,7 @@ def _(mo):
     mo.md(r"""
     ---
 
-    ## Recherche de corrélations
+    ## B. Recherche de corrélations
 
     ### Le coefficient de corrélation de Pearson
 
@@ -428,7 +427,7 @@ def _(mo):
     mo.md(r"""
     ---
 
-    ## Expérimenter des combinaisons d'attributs
+    ## C. Expérimenter des combinaisons d'attributs
 
     Plutôt que d'utiliser certaines features brutes, on teste de nouvelles features potentiellement plus corrélées à la cible.
     """)
@@ -460,7 +459,7 @@ def _(housing_exp_extra):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    # Préparation des données
+    # IV. Préparation des données
 
     On repart d'un jeu d'entraînement propre et on sépare les prédicteurs (`housing_train`) de la cible (`housing_labels`) avant d'enchaîner les transformations.
     """)
@@ -486,7 +485,7 @@ def _(housing_train):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ## Gérer les valeurs manquantes
+    ## A. Gérer les valeurs manquantes
 
     Trois possibilités pour gérer ces valeurs manquantes :
     1. `dropna()` : Supprimer les lignes qui contiennent des NaN.
@@ -535,7 +534,7 @@ def _(mo):
 
     ---
 
-    ## Variables catégorielles
+    ## B. Variables catégorielles
 
     On s'intéresse maintenant à la seule variable catégorielle du jeu de données, `ocean_proximity`, qu'il faut convertir en valeurs numériques exploitables par un modèle.
     """)
@@ -615,12 +614,12 @@ def _(mo):
     housing_cat_1hot.toarray()
     ```
 
-    # Mise à l'échelle et transformation des variables
+    # V. Mise à l'échelle et transformation des variables
 
     Les algorithmes de ML performent moins bien si les input features ont des échelles très différentes.
     Une étape préalable de mise à l'échelle des données (dans [0,1] ou [-1,1] pour les réseaux de neurones) est donc souvent nécessaire. On présente plusieurs implémentation possibles.
 
-    ## Méthodes de mise à l'échelle
+    ## A. Méthodes de mise à l'échelle
 
     ### **Min-max scaling** : scaled_value = (value − min) / (max − min)
 
@@ -643,7 +642,7 @@ def _(mo):
 
     ---
 
-    ## Symétriser les distributions difficiles
+    ## B. Symétriser les distributions difficiles
 
     ### Travail préalable : le **Heavy tail** shrinking et la symétrisation
     Lorsque la distribution des valeurs s'étale trop vers la droite (heavy tail), le scaling min-max scaling et la standardization
@@ -688,7 +687,7 @@ def _(mo):
 
     ---
 
-    ## Mettre à l'échelle la variable cible
+    ## C. Mettre à l'échelle la variable cible
 
     Plus rarement, on peut vouloir mettre à l'échelle la distribution des valeurs de la feature cible. Si l'on décide par exemple de remplacer ces valeurs par leur logarithme, le modèle apprendra à prédire le logarithme de `median_house_value`.
 
@@ -733,11 +732,11 @@ def _(mo):
     ```
 
 
-    # Transformers personnalisés
+    # VI. Transformers personnalisés
 
     Il est souvent utile de créer ses propres Transformers. Plusieurs exemples :
 
-    ## Transformers à partir d'une fonction (`FunctionTransformer`)
+    ## A. Transformers à partir d'une fonction (`FunctionTransformer`)
 
     ```python
     from sklearn.preprocessing import FunctionTransformer
@@ -768,7 +767,7 @@ def _(mo):
 
     ---
 
-    ## Créer des Transformers _fittables_
+    ## B. Créer des Transformers _fittables_
 
     `FunctionTransformer()` ne suffit plus : il nous faut créer une classe disposant des méthodes `fit()` (qui doit retourner `self`), `transform()`, et `fit_transform()`. Une implémentation naïve de la méthode `fit_transform()` s'implémente en appelant consécutivement `fit()` puis `transform()`
 
@@ -811,7 +810,7 @@ def _(mo):
 
     ---
 
-    ## À propos des Transformers personnalisés
+    ## C. À propos des Transformers personnalisés
 
     Le package `sklearn.utils.validation` fournit des fonctions à intégrer dans la définition des classes des Transformers personnalisés. Elles permettent de vérifier et de formater les données avant qu'un modèle n'essaie de faire des calculs dessus. Parmi elles : `check_array`, `check_X_y`, `check_is_fitted` ou encore `check_estimator()` (voir https://scikit-learn.org/stable/developers pour plus de détails).
 
@@ -819,7 +818,7 @@ def _(mo):
 
     ---
 
-    ## Un Transformer composite
+    ## D. Un Transformer composite
 
     On présente la construction d'un Transformer utile, qui s'appuie sur un autre estimateur (`KMeans`) pour produire des features de similarité géographique.
     """)
@@ -923,8 +922,8 @@ def _(cluster_simil, housing_train, plt, similarities):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    # Pipelines de transformation
-    ## Généralités
+    # VII. Pipelines de transformation
+    ## A. Généralités
 
     Le constructeur `Pipeline` prend en entrée une liste ordonnée de paires (nom, estimateur). Lorsque la pipeline est exécutée avec `Pipeline.fit()`, les méthodes `fit_transform()` des estimateurs sont appelées **consécutivement** - sauf pour le dernier estimateur dans la liste, pour lequel seule `fit()` est appelée. Il faut donc impérativement que les estimateurs soient des **Transformers**, à l'exception du dernier.
 
@@ -954,7 +953,7 @@ def _(mo):
 
     ---
 
-    ## Fonctionnalités du transformateur `Pipeline`
+    ## B. Fonctionnalités du transformateur `Pipeline`
     - `pipeline[1]` retourne le deuxième estimateur de la pipeline
     - `pipeline[:-1]` retourn un objet Pipeline contenant tous les estimateurs sauf le dernier
     - `num_pipeline["simpleimputer"]` retourne l'estimateur dont le nom est "simpleimputer"
@@ -962,7 +961,7 @@ def _(mo):
 
     ---
 
-    ## Gérer simultanément les features numériques et catégorielles
+    ## C. Gérer simultanément les features numériques et catégorielles
 
     Jusque là, on a divisé manuellement le DataFrame en deux, on a appliqué les transformations séparément puis on a concaténé les résultats ensemble. Grâce au `ColumnTransformer`, on peut se simplifier la tâche en gérant **simultanément** les deux types de variables. L'inconvénient est que cet objet est plus rigide (il **ne supporte pas les fonctionnalités** ci-dessus, notamment puisqu'il parallélise).
 
@@ -984,7 +983,7 @@ def _(mo):
 
     ---
 
-    ## Sélection dynamique et nommage automatique des colonnes
+    ## D. Sélection dynamique et nommage automatique des colonnes
 
     Énumérer les features de chaque type pose deux problèmes : c'est fastidieux dès lors qu'on a un grand nombre de variables et c'est peu robuste si on ré-entraine notre Pipeline sur un Dataset qui a un peu changé.
 
@@ -1017,7 +1016,7 @@ def _(mo):
 
     ---
 
-    ## Bilan sur la Pipeline implémentée
+    ## E. Bilan sur la Pipeline implémentée
 
     Récapitulons ce qu'elle fait :
     - Les valeurs manquantes respectivement dans les variables numériques et catégorielles sont remplacées par la médiane et la catégorie la plus fréquente.
@@ -1088,7 +1087,7 @@ def _(preprocessing):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    # Récapitulatif des variables déclarées jusqu'ici
+    # VIII. Récapitulatif des variables déclarées jusqu'ici
 
     | Variables | Utilité | Catégorie |
     | --- | --- | --- |
@@ -1115,9 +1114,9 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    # Sélection et entraînement du modèle
+    # IX. Sélection et entraînement du modèle
 
-    ## Évaluation et entraînement sur le train set
+    ## A. Évaluation et entraînement sur le train set
 
     On va entraîner deux modèles et évaluer leur prédictions sur le train set (**training error**). Pourquoi pas sur le test set ? Car on veut éviter que ce dernier induise un trop fort biais de sélection du modèle. En principe, on n'évalue pas sur le test set avant d'avoir définitivement sélectionné un modèle.
 
@@ -1263,7 +1262,7 @@ def _(mo):
     On pourrait se dire qu'une training error nulle c'est très bien, mais puisque justement on évalue les prédictions sur le même set qui a entraîné le modèle, il y a une très forte suspicion d'**overfitting**. Une façon de s'en assurer sans évaluer sur le test set est d'utiliser un procédé de **validation croisée**.
 
     ---
-    ## Mieux évaluer avec la validation croisée
+    ## B. Mieux évaluer avec la validation croisée
 
     La fonction `cross_val_score` du package Scikit-Learn en est l'implémentation la plus idiomatique. Elle partitionne le train set en k subsets (ou **folds**), ce qui donne par passage au complémentaire k splits train/validation. On entraîne-évalue k fois et on définit la **validation error** comme la moyenne de ces k erreurs.
 
@@ -1456,7 +1455,7 @@ def _(
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ## Tableau récapitulatif
+    ## C. Tableau récapitulatif
 
     | Type du modèle | Erreur d'entraînement (RMSE) | Erreur de validation (RMSE moyen) |
     | --- | --- | --- |
@@ -1475,9 +1474,9 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    # Réglage des hyperparamètres du modèle (fine-tuning)
+    # X. Réglage des hyperparamètres du modèle (fine-tuning)
 
-    ## Recherche par grille (grid search)
+    ## A. Recherche par grille (grid search)
 
     Pour optimiser les performances de notre modèle, une première approche consiste à définir une **plage d'hyperparamètres** et à tester notre modèle pour chaque configuration. En dimension supérieure à 1 (lorsqu'on teste plus d'un paramètre), on parle plus volontiers de grille (grid) que de plage – d'où cette appellation.
 
@@ -1537,7 +1536,7 @@ def _(mo):
     mo.md(r"""
     ---
 
-    ## Recherche aléatoire (randomized search)
+    ## B. Recherche aléatoire (randomized search)
 
     L'inconvénient majeur de fine-tuner un modèle avec une approche grid search est clairement le coût de calcul : les quelques 12 valeurs qu'on a entré ont déjà nécessité 45 entraînements du modèle.
 
@@ -1570,7 +1569,7 @@ def _(mo):
     mo.md(r"""
     ---
 
-    ## Successive halving
+    ## C. Successive halving
     Les classes `HalvingRandomSearchCV` et `HalvingGridSearchCV` font sensiblement la même chose que les classes précédentes, mais introduisent des optimisations de performance.
 
     Jusqu'ici, chaque combinaison candidate subissait le même entraînement complet en validation croisée. Au lieu de cela, le **successive halving** propose d'allouer de façon adaptative les _ressources_ sous forme de **tournoi**.
@@ -1581,13 +1580,13 @@ def _(mo):
 
     ---
 
-    ## Méthodes d'ensemble
+    ## D. Méthodes d'ensemble
 
     Un autre moyen très simple d'améliorer les prédictions consiste à **combiner des modèles**, par exemple en considérant une combinaison convexe d'un KNN et d'un modèle de gradient boosting. On trouvera plus de détail sur ce sujet au Chapitre 7.
 
     ---
 
-    ## Sélection de variables (feature selection)
+    ## E. Sélection de variables (feature selection)
 
     Un bon moyen de comprendre la structure sous-jacente des données consiste à faire du reverse-engineering sur un modèle performant. Par exemple, la classe `RandomForestRegressor` dispose de l'attribut `feature_importances_` qui indique l'importance relative des différentes features pour réaliser des prédictions précises.
     """)
@@ -1655,7 +1654,7 @@ def _(mo):
     mo.md(r"""
     ---
 
-    ## Évaluation sur le test set
+    ## F. Évaluation sur le test set
 
     On décide finalement d'évaluer notre modèle (celui sans élagage des features) sur le test set.
     """)
@@ -1705,7 +1704,7 @@ def _(final_predictions, np, y_test):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    # Sauvegarder et déployer le modèle en production
+    # XI. Sauvegarder et déployer le modèle en production
 
     On présente un moyen simple (package `joblib`) de sauvegarder un modèle.
 
