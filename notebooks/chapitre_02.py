@@ -914,7 +914,6 @@ def _(cluster_simil, housing_train, plt, similarities):
              linestyle="", color="black", marker="X", markersize=20,
              label="Cluster centers")
     plt.legend(loc="upper right")
-    plt.savefig("district_cluster_plot.png", dpi=120, bbox_inches="tight")
     plt.show()
     return
 
