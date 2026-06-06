@@ -6,8 +6,6 @@ venv/
 __pycache__/
 *.pyc
 
-notebooks/chapitre_03.py
-
 .DS_Store
 
 district_cluster_plot.png
