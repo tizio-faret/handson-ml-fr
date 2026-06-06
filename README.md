@@ -11,6 +11,7 @@ Notebooks écrits avec Marimo : réactifs, stockés en fichiers texte et exécut
 | Chapitre | Sujet | Ouvrir |
 |---|---|---|
 | 2 | End-to-End ML Project (California Housing) | [Notebook (molab)](https://molab.marimo.io/github/tizio-faret/handson-ml-fr/blob/main/notebooks/chapitre_02.py/wasm) |
+| 3 | Classification | [Notebook (molab)](https://molab.marimo.io/github/tizio-faret/handson-ml-fr/blob/main/notebooks/chapitre_03.py/wasm) |
 
 Les chapitres suivants seront ajoutés au fil du temps.
 
