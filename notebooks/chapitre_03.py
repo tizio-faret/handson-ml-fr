@@ -16,7 +16,7 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    Ce notebook est inspiré du chapitre 3 de Hands-On Machine Learning (3e éd.) d'Aurélien Géron. Le code est adapté de [ageron/handson-ml3](https://github.com/ageron/handson-ml3), sous licence Apache 2.0.
+    Ce notebook est inspiré du chapitre 3 de Hands-On Machine Learning (3e éd.) d'Aurélien Géron. Le code est adapté de [ageron/handson-mlp](https://github.com/ageron/handson-mlp), sous licence Apache 2.0.
     """)
     return
 
@@ -74,20 +74,21 @@ def _(mo):
 def _(mnist):
     import matplotlib.pyplot as plt
 
-    def plot_digit(image_data, x_dim, y_dim):
+    def plot_digit(image_data):
         # On convertit le vecteur d'entrée en tableau 2D 28x28
         image = image_data.reshape(28, 28)
-        plt.figure(figsize=(x_dim, y_dim))
         # Colormap
         plt.imshow(image, cmap="binary")
         plt.axis("off")
 
     some_digit = mnist.data[0]
-    plot_digit(some_digit, 2, 2)
+
+    plt.figure(figsize=(2,2)) 
+    plot_digit(some_digit)
     plt.show()
 
     print(f"Label de l'instance : {mnist.target[0]}")
-    return plt, some_digit
+    return plot_digit, plt, some_digit
 
 
 @app.cell(hide_code=True)
@@ -106,7 +107,7 @@ def _(mo):
 @app.cell
 def _(mnist):
     X_train, X_test, y_train, y_test = mnist.data[:60000], mnist.data[60000:], mnist.target[:60000], mnist.target[60000:]
-    return X_train, y_test, y_train
+    return X_test, X_train, y_test, y_train
 
 
 @app.cell(hide_code=True)
@@ -115,6 +116,7 @@ def _(mo):
     On trace un histogramme pour s'assurer que cette répartition suit un échantillonage stratifié.
 
     > Avec l'option `density=True`, on affiche les **proportions** des occurences (plutôt que les effectifs bruts).
+    <a id="occurences-classes"></a>
     """)
     return
 
@@ -123,11 +125,11 @@ def _(mo):
 def _(plt, y_test, y_train):
     import numpy as np
 
-    plt.figure(figsize=(6, 3)) 
+    plt.figure(figsize=(7, 4)) 
     plt.hist([y_train, y_test], color = ['steelblue', 'gold'], label = ['train set', 'test set'], 
              histtype = 'bar', density=True) 
     plt.legend()
-    return
+    return (np,)
 
 
 @app.cell(hide_code=True)
@@ -156,7 +158,7 @@ def _(mo):
     mo.md(r"""
     ## A. SGDClassifier
 
-    Le premier classifieur binaire auquel on s'intéresse est `SGDClassifier` (Stochastic Gradient Descent Classifier). On va s'abord essayer de comprendre son fonctionnement dans les grandes lignes avant de l'implémenter.
+    Le premier classifieur binaire auquel on s'intéresse est `SGDClassifier` (Stochastic Gradient Descent Classifier). On va d'abord essayer de comprendre son fonctionnement dans les grandes lignes avant de l'implémenter.
 
     ---
 
@@ -201,15 +203,7 @@ def _(mo):
 
     ### Sélection du pas
 
-    Trouver un bon $t_k$ revient à minimiser la fonction d'une variable $g(t) = J(\theta_k - t\,\nabla J(\theta_k))$. Plusieurs stratégies existent :
-
-    | Stratégie | Principe | En pratique |
-    |---|---|---|
-    | **Pas constant** | $t_k = t$ fixé| $t$ trop petit ⇒ convergence lente ; $t$ trop grand ⇒ divergence. Sous de bonnes hypothèses, le choix optimal est $t = 1/L$, où $L$ est la constante de Lipschitz de $\nabla J$. |
-    | **Recherche linéaire exacte** | $t_k = \arg\min_{t\geq 0} g(t)$ | Idéal mais rarement calculable explicitement. |
-    | **Backtracking** | Partir d'un pas $t_0$ et le réduire tant que la décroissance n'est pas suffisante | Bon compromis : c'est celle qu'on utilise en pratique. |
-
-    > **Backtracking** : une implémentation littérale requerrait de réévaluer $J$ (et donc de re-balayer les données) plusieurs fois **par pas** : c'est coûteux sur de gros datasets. En pratique on fixe plutôt un taux d'apprentissage que l'on fait décroître au fil des itérations.
+    Trouver un bon $t_k$ revient à minimiser la fonction d'une variable $g(t) = J(\theta_k - t\,\nabla J(\theta_k))$. Plusieurs heuristiques existent mais à nouveau, on n'entre pas dans les détails.
 
     ---
 
@@ -229,7 +223,7 @@ def _(mo):
 
     ### Implémentation
 
-    On implémente donc notre classifieur en l'entraînant sur tout le training set.
+    On implémente ainsi notre classifieur en l'entraînant sur tout le training set.
     """)
     return
 
@@ -268,8 +262,8 @@ def _(X_train, sgd_clf, y_train_5):
     from sklearn.model_selection import cross_val_score
     import pandas as pd
 
-    cross_val_score(sgd_clf, X_train, y_train_5, cv=3, scoring="accuracy")
-    return
+    cross_val_score(sgd_clf, X_train, y_train_5, cv=3, scoring="accuracy", n_jobs=-1)
+    return (cross_val_score,)
 
 
 @app.cell(hide_code=True)
@@ -277,11 +271,6 @@ def _(mo):
     mo.md(r"""
     On a plus de 95% d'exactitude sur chaque fold : la quasi-totalité des instances classées par notre modèle (prédictions positives et négatives confondues) étaient correctes. C'est assez prometteur, mais cette métrique devient peu informative lorsque les classes sont **fortement déséquilibrées** (ce qui est clairement le cas ici).
     """)
-    return
-
-
-@app.cell
-def _():
     return
 
 
@@ -319,7 +308,7 @@ def _(mo):
 def _(X_train, sgd_clf, y_train_5):
     from sklearn.model_selection import cross_val_predict
 
-    y_train_pred = cross_val_predict(sgd_clf, X_train, y_train_5, cv=3)
+    y_train_pred = cross_val_predict(sgd_clf, X_train, y_train_5, cv=3, n_jobs=-1)
     return cross_val_predict, y_train_pred
 
 
@@ -468,7 +457,7 @@ def _(mo):
 
 @app.cell
 def _(X_train, cross_val_predict, sgd_clf, y_train_5):
-    y_scores = cross_val_predict(sgd_clf, X_train, y_train_5, cv=3, method="decision_function")
+    y_scores = cross_val_predict(sgd_clf, X_train, y_train_5, cv=3, method="decision_function", n_jobs=-1)
     return (y_scores,)
 
 
@@ -553,7 +542,7 @@ def _(mo):
 
     >En pratique, on impose donc souvent une condition sur une seule des deux métriques.
 
-    Ainsi, pour déterminer la plus petite valeur du threshold qui satisfasse à une précision donnée (disons 90%), il vaut mieux utiliser la méthode `argmax()` du package Numpy.
+    Pour déterminer la plus petite valeur du threshold qui satisfasse à une précision donnée (disons 90%), il vaut mieux utiliser la méthode `argmax()` du package Numpy.
     """)
     return
 
@@ -598,7 +587,7 @@ def _(mo):
 
     ## E. Automatiser le choix du seuil
 
-    Cette section est absente de la dernière édition du livre. Elle présente deux alternatives à `SGDClassifier` qui intègrent nativement la gestion du threshold.
+    Cette section est absente de la dernière édition du livre. Elle présente deux alternatives à `SGDClassifier` qui intègrent **nativement** la gestion du threshold.
 
     > Ces estimateurs ont été introduits dans la version 1.5 de Scikit (mai 2024).
 
@@ -657,7 +646,7 @@ def _(mo):
 def _(SGDClassifier, X_train, some_digit, y_train_5):
     from sklearn.model_selection import TunedThresholdClassifierCV
 
-    tuned_clf = TunedThresholdClassifierCV(SGDClassifier(random_state=42), scoring="f1", response_method="decision_function", cv=3, random_state=42,)
+    tuned_clf = TunedThresholdClassifierCV(SGDClassifier(random_state=42), scoring="f1", response_method="decision_function", cv=3, random_state=42, n_jobs=-1)
 
     tuned_clf.fit(X_train, y_train_5)
     tuned_clf.predict([some_digit])
@@ -765,7 +754,7 @@ def _(mo):
 
     On entraîne un autre classifieur, une forêt aléatoire, dans le but de mettre en perspectives nos métriques.
 
-    Pour tracer la courbe PR, on doit réaliser des prédictions associées à différentes valeurs du seuil. On s'appuyait jusque là sur la fonction de décision ajustée par le modèle pendant l'entraînement, mais `RandomForestClassifier` ne dispose pas de fonction de score de décision interne. Il fournit toutefois une probabilité d'appartenance à la classe : on s'en servira comme d'un score.
+    Pour tracer la courbe PR, on doit réaliser des prédictions associées à différentes valeurs du seuil. On s'appuyait jusque là sur la fonction de décision ajustée par le modèle pendant l'entraînement, mais `RandomForestClassifier` ne dispose pas de fonction de score de décision interne. Il fournit toutefois une **probabilité** d'appartenance à la classe : on s'en servira comme d'un score.
     """)
     return
 
@@ -774,7 +763,7 @@ def _(mo):
 def _(X_train, cross_val_predict, y_train_5):
     from sklearn.ensemble import RandomForestClassifier
 
-    forest_clf = RandomForestClassifier(random_state=42)
+    forest_clf = RandomForestClassifier(random_state=42, n_jobs=-1)
 
     y_probas_forest = cross_val_predict(forest_clf, X_train, y_train_5, cv=3, method="predict_proba")
     y_probas_forest.shape
@@ -784,7 +773,7 @@ def _(X_train, cross_val_predict, y_train_5):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    Avec l'option `method="predict_proba"`, on se retrouve avec un tableau (une colonne par classe). Chaque colonne représente la probabilité d'appartenance à la classe : c'est une information utile, sauf pour le problème de classification binaire où les deux probabilités somment à 1.
+    Avec l'option `method="predict_proba"`, on se retrouve avec un tableau (une colonne par classe). Chaque colonne représente la **probabilité d'appartenance à la classe** : c'est une information utile, sauf pour le problème de classification binaire où les deux probabilités somment à 1.
 
     On fournit donc la deuxième colonne (classe positive) du tableau à la fonction `precision_recall_curve()` pour tracer la courbe PR.
     """)
@@ -819,7 +808,7 @@ def _(plt, precisions, precisions_forest, recalls, recalls_forest):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    La forêt aléatoire fait clairement mieux. Comparons les autres métriques.
+    La forêt aléatoire fait clairement mieux ici. Comparons les autres métriques.
     """)
     return
 
@@ -848,7 +837,7 @@ def _(
     _roc_auc_forest   = roc_auc_score(y_train_5, y_scores_forest)   # score continu
 
     # SGD 
-    y_tuned_pred = cross_val_predict(tuned_clf, X_train, y_train_5, cv=3)
+    y_tuned_pred = cross_val_predict(tuned_clf, X_train, y_train_5, cv=3, n_jobs=-1)
     _f1_sgd        = f1_score(y_train_5, y_tuned_pred)
     _precision_sgd = precision_score(y_train_5, y_tuned_pred)
     _recall_sgd    = recall_score(y_train_5, y_tuned_pred)
@@ -857,6 +846,520 @@ def _(
     print(f"--- SGDClassifier - maximisation F1-score ---\nF1-score  : {_f1_sgd*100:.1f} %\nAUC-ROC   : {_roc_auc_sgd*100:.1f} %\nPrécision : {_precision_sgd*100:.1f} %\nRecall    : {_recall_sgd*100:.1f} %\n")
 
     print(f"--- Forêt aléatoire ---\nF1-score  : {_f1_forest*100:.1f} %\nAUC-ROC   : {_roc_auc_forest*100:.1f} %\nPrécision : {_precision_forest*100:.1f} %\nRecall    : {_recall_forest*100:.1f} %")
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    C'est sans appel, ici la forêt fait mieux !
+
+    # IV. Classification multi-classe
+
+    ## A. Principe
+
+    On parle de classification multi-classe dès lors qu'on souhaite distinguer plus de deux classes. Les deux approches principales, **OvR** et **OvO**, s'appuient sur des classifieurs binaire. Le chemin parcouru jusqu'ici n'a donc pas servi à rien. Ouf !
+
+    Supposons que nous voulions implémenter un modèle capable de classer une image parmis les dix classes 0, 1, 2, .., 9.
+
+    - Approche **One vs. Rest** : On entraîne autant de classifieurs binaires qu'il y a de classes à traiter. La prédiction finale est celle associée au **score de décision le plus élevé** parmi les 10 modèles. On mobiliserait alors des modèles similaires à notre « détecteur de 5 » implémenté dans la section précédente.
+
+    - Approche **One vs. One** : On entraîne autant de classifieurs binaires qu'il y a de paires de classes possibles : 0 ou 1, 1 ou 0, 1 ou 2 etc.. La prédiction finale correspond à la classe qui obtient **le plus de votes** parmi l’ensemble des classifieurs binaires.
+
+    Avec la méthode OvO, on mobilise **davantage de classifieurs** mais chacun d'entre eux n'a besoin d'être entraîné que sur la fraction du train set contenant les instances associées aux deux classes qu'il doit reconnaître. En pratique **Scikit-Learn choisit** qu'elle approche est la meilleure des deux selon le modèle qu'on choisit d'entraîner.
+
+    ## B. Implémentation d'une SVM
+
+    On décide d'entraîner une machine à vecteurs de support pour classer les 10 types d'images. On l'entraîne sur une portion réduite du train set pour limiter le coût de calcul.
+    """)
+    return
+
+
+@app.cell
+def _(X_train, some_digit, y_train):
+    from sklearn.svm import SVC
+
+    svm_clf = SVC(random_state=42)
+    svm_clf.fit(X_train[:2000], y_train[:2000])
+
+    svm_clf.predict([some_digit])
+    return SVC, svm_clf
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    La docstring de la classe SVC, accessible via `SVC.__doc__`, nous indique que `SVC` utilise OvO.
+
+    Ainsi, pour classer l'image dans la classe 5, le modèle a évalué sur cette instance les 45 scores de décision associés au 45 classifieurs binaires et a dénombré le nombre de duels remportés par chaque classe.
+
+    > En pratique, `SVC` pondère ce dénombrement avec une légère correction basée sur les scores de décision. Les classes qui remportent leurs duels avec le plus de marge sont favorisées - cela permet d'éviter les cas d'égalité.
+
+    On peut consulter ces dénombrements pondérés et vérifier que le plus élévé d'entre eux est associé à la classe '5'.
+    """)
+    return
+
+
+@app.cell
+def _(some_digit, svm_clf):
+    some_digit_scores = svm_clf.decision_function([some_digit])
+
+    some_digit_scores.round(2)
+    return (some_digit_scores,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Ici, le nom de chaque classe coïncide avec son indice. Le reste du temps, on utilise l'attribut `classes_` du prédicteur qui permet de retrouver la **correspondance entre les indices et les labels** des classes.
+    """)
+    return
+
+
+@app.cell
+def _(some_digit_scores, svm_clf):
+    class_id = some_digit_scores.argmax()
+    class_id
+
+    svm_clf.classes_[class_id]
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ---
+
+    ## C. Forcer l'OvO ou l'OvR
+
+    Pour forcer une approche plutôt que de laisser Scikit décider, on peut utiliser `OneVsRestClassifier` ou `OneVsOneClassifier`.
+
+    Si on reprend l'exemple de la SVM, l'implémentation diffère à peine.
+    """)
+    return
+
+
+@app.cell
+def _(SVC, X_train, some_digit, y_train):
+    from sklearn.multiclass import OneVsRestClassifier
+
+    ovr_clf = OneVsRestClassifier(SVC(random_state=42))
+    ovr_clf.fit(X_train[:2000], y_train[:2000])
+
+    ovr_clf.predict([some_digit])
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ---
+
+    ## D. Implémentation d'un `SGDClassifier`
+
+    Un `SGDClassifier` est initialement un classifieur binaire. Toutefois, si le vecteur des labels contient **plus de deux types de données**, Scikit passe **automatiquement** en mode classification multi-classe et organise en silence la gestion de plusieurs modèles selon l'approche OvO ou OvR.
+
+    > En mode classification multiclasse, `SGDClassifier` utilise toujours OvR.
+    """)
+    return
+
+
+@app.cell
+def _(SGDClassifier, X_train, some_digit, y_train):
+    sgd_mlt_clf = SGDClassifier(random_state=42)
+
+    sgd_mlt_clf.fit(X_train, y_train)
+    sgd_mlt_clf.predict([some_digit])
+    return (sgd_mlt_clf,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    La prédiction est fausse. Avec l'approche OvR, on compare les 10 scores de décision de chaque classifieur binaire. Jetons un oeil sous le capot - le score de décision associé à la détection des '5' talonne sans doute celui des '3'.
+    """)
+    return
+
+
+@app.cell
+def _(plt, sgd_mlt_clf, some_digit):
+    scores = sgd_mlt_clf.decision_function([some_digit]).ravel()
+
+    plt.figure(figsize=(6, 3))
+    plt.bar(range(len(scores)), scores)
+    plt.xlabel("Classe")
+    plt.ylabel("Score de décision")
+    plt.show()
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Le diagramme corrobore nos intuitions. Une façon d'améilorer notre prédicteur serait de mettre à l'échelle les données (standardization) avec `StandardScaler`, puis de comparer l'évolution de la proportion d'instances correctement classées par le modèle (accuracy).
+    """)
+    return
+
+
+@app.cell
+def _(X_train, cross_val_score, sgd_mlt_clf, y_train):
+    sgd_mlt_clf_accuracy = cross_val_score(sgd_mlt_clf, X_train, y_train, cv=3, scoring="accuracy", n_jobs=-1)
+    return (sgd_mlt_clf_accuracy,)
+
+
+@app.cell
+def _(X_train, cross_val_score, sgd_mlt_clf, sgd_mlt_clf_accuracy, y_train):
+    import warnings
+    from sklearn.exceptions import ConvergenceWarning
+    from sklearn.preprocessing import StandardScaler
+
+    # On masque les avertissements levés par SGDClassifier
+    warnings.filterwarnings("ignore", category=ConvergenceWarning)
+
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train.astype("float64"))
+
+    sgd_mlt_clf_accuracy_scaled = cross_val_score(sgd_mlt_clf, X_train_scaled, y_train, cv=3, scoring="accuracy", n_jobs=-1)
+
+    print(f"Accuracy moyenne avant standardization : {sgd_mlt_clf_accuracy.mean()*100:.1f} \nAccuracy moyenne après standardization : {sgd_mlt_clf_accuracy_scaled.mean()*100:.1f}")
+    return (X_train_scaled,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    # V. Analyse des erreurs
+
+    Pour améliorer notre modèle, on va vouloir analyser la nature des erreurs qu'il commet.
+
+    ## A. Matrice de confusion de grande taille
+
+    À ce titre, consulter la matrice de confusion peut s’avérer utile pour **repérer les confusions les plus fréquentes** du modèle.
+
+    > Rappel : Une matrice de confusion compare les prédictions d'un modèle de classification aux classes réelles des données. Elle dénombre le nombre de fois où le modèle à attribué (à tort ou à raison) une instance de classe X  à la classe Y, pour toutes les paires de classes possibles.
+
+    On génère à cet effet le vecteur des prédictions réalisées sur une validation croisée avec `cross_val_predict`, puis on utilise `ConfusionMatrixDisplay` pour afficher la matrice sous forme de _carte de chaleur_.
+    """)
+    return
+
+
+@app.cell
+def _(X_train_scaled, cross_val_predict, plt, sgd_mlt_clf, y_train):
+    from sklearn.metrics import ConfusionMatrixDisplay
+
+    y_train_pred_mult = cross_val_predict(sgd_mlt_clf, X_train_scaled, y_train, cv=3, n_jobs=-1)
+
+    plt.rc('font', size=9)
+    ConfusionMatrixDisplay.from_predictions(y_train, y_train_pred_mult)
+    plt.show()
+    return ConfusionMatrixDisplay, y_train_pred_mult
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    L'intensité colorimétrique suggère que les '5' sont moins souvent reconnus comme tels que les autres chiffres. C'est trompeur : ça peut être causé par l'imprécision du modèle ou par une faible occurence de la classe '5' dans le dataset ([ce qui est le cas ici](#occurences-classes)).
+
+    La solution consiste à diviser chaque valeur de la matrice par le nombre d'occurences de sa vraie classe dans le dataset.
+
+    > Pour une valeur donnée, le nombre d'occurences de sa vraie classe dans le dataset correspond ... à la somme des valeurs de sa ligne.
+
+    On implémente cette normalisation avec l'option `normalize` de `ConfusionMatrixDisplay.from_predictions()`.
+    """)
+    return
+
+
+@app.cell
+def _(ConfusionMatrixDisplay, plt, y_train, y_train_pred_mult):
+    plt.rc('font', size=10) 
+    ConfusionMatrixDisplay.from_predictions(y_train, y_train_pred_mult, normalize="true", values_format=".0%")
+    plt.show()
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Les valeurs affichées, comprises dans l'intervalle [0,1], s'interprètent désormais comme suit :
+    - Ligne 6, colonne 9, figure **ci-dessus** : 10 % des '5' ont été classés comme des '8' par le modèle.
+
+    Une astuce pour faire ressortir les erreurs consiste à **descendre à 0 les prédictions correctes** (puis _ensuite_ de normaliser). Ça change la façon dont on interprète les valeurs :
+    -  Ligne 6, colonne 9, figure **ci-dessous** : 55 % des erreurs commises sur les '5' correspondent à des prédictions en '8'.
+    """)
+    return
+
+
+@app.cell
+def _(ConfusionMatrixDisplay, plt, y_train, y_train_pred_mult):
+    sample_weight = (y_train_pred_mult != y_train)
+
+    ConfusionMatrixDisplay.from_predictions(y_train, y_train_pred_mult, sample_weight=sample_weight, normalize="true", values_format=".0%")
+    plt.show()
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    On pourrait aussi normaliser par la somme des valeurs des colonnes avec `normalize="prod"`.
+
+    On obtiendrait alors, à la ligne 6 et à la colonne 9, la proportion des prédictions erronées en '8' qui correspondaient en réalité à des '5'.
+
+    ---
+
+    ## B. Corriger les erreurs du modèle
+
+    L'analyse de la matrice de confusion n'est pas une fin en soi ; elle doit nous guider vers des choix d'implémentations judicieux. Et plutôt que de chercher à améliorer le modèle en général, on cherche souvent à corriger une confusion en particulier.
+
+    Trois leviers s'offrent à nous : agir sur les **données**, sur les **features**, ou sur le **prétraitement**.
+
+    On illustrera ces points avec la confusion des '5' en '8', qui est l'une des confusions majeures de notre modèle.
+
+    ### Enrichir le dataset
+
+    Puisque que l'on souhaite corriger une sorte « d'underfitting local », la correction la plus intuitive consiste à **nourrir le modèle avec davantage d'exemples là où il se trompe**. Ici la classe '5' est légèrement sous représentée dans le dataset, donc cette approche constitue une piste privilégiée.
+
+    Mais on peut aussi décider d'insister sur les cas-limites : des '5' mal tracés, des '8' que l'on pourrait confondre avec des '5', etc.. On espère ainsi que le classifieur parviendra à affiner la frontière de décision entre les deux classes.
+
+    Lorsqu'il n'est pas possible de se munir de nouvelles instances, on recourt à la **data augmentation** : on génère artificiellement de nouvelles instances à partir de celles dont on dispose déjà en les modifiant un peu. Dans notre cas cela consisterait à appliquer des transformations géométriques : translation, rotation, déformation, etc..
+
+    ### Construire de nouvelles features
+
+    Si le modèle confond '5' et '8', c'est peut être parce que la représentation en 784 pixels bruts ne met pas en avant ce qui les distingue visuellement. Or il existe une différence topologique fondamentale entre ces deux chiffres : le **nombre de boucles fermées**. Un '8' en possède deux, un '0', un '6' ou un '9' en ont une, tandis qu'un '5', un '1' ou un '7' n'en ont aucune.
+
+    L'idée est alors d'extraire cette information et de la fournir au modèle. C'est du _feature engineering_ comme on en a fait au chapitre 2.
+
+    À ce propos, on ne peut pas procéder exactement comme au chapitre 2 en ajoutant une 785ème feature comptant le nombre de boucles, et ce pour deux raisons principales.
+
+    D’une part, son effet risquerait de rester marginal, noyé parmi les 784 autres variables. D’autre part, elle **casserait la logique de dépendance** entre les features : on passerait d’un ensemble de pixels spatialement corrélés à une variable entière sans lien direct avec leur organisation locale.
+
+    Une solution possible consisterait à modifier directement les images, pourquoi pas en bouchant les trous par exemple.
+
+    > La méthode `binary_fill_holes()` de Scipy implémente justement cette fonctionnalité.
+
+    ### Prétraiter les images
+
+    Enfin, un autre moyen de corriger ce biais de confusion consiste à prétraiter les images. C'est en quelque sorte une forme de data-augmentation, mais qui vise davantage à réduire le bruit global qu'à en rajouter.
+
+    Différentes techniques existent : **centrage et recadrage** des chiffres pour gommer les variations de position, **squelettisation** (amincissement du trait) pour normaliser l'épaisseur, ou **détection de contours** pour accentuer la silhouette, etc..
+
+    > Souvent, on utilise souvent des bibliothèques de traitement d'image comme Scikit-Image, Pillow ou OpenCV pour réaliser ce prétraitement.
+
+    # VI. Classification multi-label
+
+    ## A. Principe
+    On parle de classification **multi-label** lorsqu'on souhaite classer des instances parmi plusieurs classes **binaires** et **non exclusives**.
+
+    On peut citer comme exemple la classification de film : par exemple, un film peut être 'action', 'science-fiction' ou 'comédie'. Le modèle prédit alors **plusieurs labels simultanément** :
+    - 'action' → [True / False]
+    - 'science-fiction' → [True / False]
+    - 'comédie' → [True / False]
+
+    Pour une instance donnée, la prédiction ressemble à un vecteur [True, False, True].
+
+    ---
+
+    ## B. Exemple sur le MNIST
+
+    On implémente un tel problème de classification sur notre dataset. On définit deux classes :
+    1. Classe « grand nombre » (7, 8 ou 9) → [True / False]
+    2. Classe « nombres impair » (1, 3, 5, 7, 9) → [True / False]
+    """)
+    return
+
+
+@app.cell
+def _(np, y_train):
+    from sklearn.neighbors import KNeighborsClassifier
+
+    # Vecteurs de booléens associés aux deux classes 
+    y_train_impair = (y_train.astype('int8') % 2 == 1)
+    y_train_large = (y_train >= '7')
+
+    # Concaténation des deux vecteurs colonne en un tableau NumPy
+    y_multilabel = np.c_[y_train_impair, y_train_large]
+    return KNeighborsClassifier, y_multilabel
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    On entraîne ensuite un modèle KNN, qui supporte nativement la classification multi-label.
+
+    On l'évalue sur la première instance du dataset. Puisque c'est un 5, la prédiction est correcte si elle le classe comme non large et impair : [False, True].
+    """)
+    return
+
+
+@app.cell
+def _(KNeighborsClassifier, X_train, some_digit, y_multilabel):
+    knn_clf = KNeighborsClassifier()
+
+    knn_clf.fit(X_train, y_multilabel)
+    knn_clf.predict([some_digit])
+    return (knn_clf,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    C'est correct !
+
+    ---
+
+    ## C. Évaluation
+
+    Puisque les labels sont binaires, on peut mesurer les F1-scores associés à la prédiction de chacun d'entre eux. La moyenne de ces scores constitue une métrique possible pour évaluer notre modèle.
+
+    Cela s'implémente également avec la fonction `f1_score` (on rajoute l'option `average="macro"`), mais il faut au préalable avoir généré le vecteur des prédictions réalisées lors d'une validation croisée.
+    """)
+    return
+
+
+@app.cell
+def _(X_train, cross_val_predict, f1_score, knn_clf, y_multilabel):
+    y_train_knn_pred = cross_val_predict(knn_clf, X_train, y_multilabel, cv=3)
+
+    f1_score(y_multilabel, y_train_knn_pred, average="macro")
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Dans le cas où certains labels seraient plus importants que d'autres (au regard des critères d'évaluation), on peut choisir de pondérer la moyenne de ces scores.
+
+    À ce titre, l'option `average="weighted"` de `f1_score` consiste à pondérer chaque score par le nombre d’occurrences de la classe associée dans le dataset, en supposant que les scores calculés sur les classes les plus représentées sont plus fiables.
+
+    ---
+
+    ## D. Créer un classifieur multi-label
+
+    Certains modèles de classification ne supportent pas la classification multi-label. Un moyen de contourner le problème est **d'entraîner autant de classifieurs qu'il y a de labels**.
+
+    Puisque les labels sont souvent corrélées, on voudrait pouvoir **fournir à certains estimateurs les prédictions d'autres estimateurs**. Par exemple, puisqu'un film classé `science-fiction` a moins de chance d'être une `comédie`, on voudrait que le prédicteur du label `science-fiction` réalise sa prédiction en premier, puis qu'il la donne au prédicteur du label `comédie`.
+
+    La classe `ClassifierChain` de Scikit implémente justement cette fonctionnalité, avec en sucroît la possibilité de réaliser l'entraînement par validation croisée.
+
+    > Par défaut les prédicteurs sont appelés dans l'ordre des colonne du tableau des labels. Pour le changer, il suffit de donner la liste des indices à traiter au paramètre `order` de `ClassifierChain`.
+
+    Ici, `order=[1, 0]` impose d'appeler en premier le prédicteur du label associé à la deuxième colonne de `y_multilabel` (c'est celui associé à la classe « grand nombre » ).
+    """)
+    return
+
+
+@app.cell
+def _(SVC, X_train, some_digit, y_multilabel):
+    from sklearn.multioutput import ClassifierChain
+
+    chain_clf = ClassifierChain(SVC(), order=[1, 0], cv=3, random_state=42)
+
+    # On se limite à une fraction du dataset pour réduire le temps d'entraînement
+    chain_clf.fit(X_train[:2000], y_multilabel[:2000])
+    chain_clf.predict([some_digit])
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    La prédiction est correcte : `[False, True]` = `[0, 1]`.
+
+    # VII. Classification multioutput
+
+    ## A. Principe
+
+    La **classification multioutput**, ou _classification multiclasse à sorties multiples_, généralise le problème de la classification multi-label mais **autorise chaque label à être multiclasse** au lieu d'être binaire.
+
+    On peut reprendre le problème de la classification de films :
+    - 'Genre principal' → [action / drame / comédie]
+    - 'Public' → [enfant / ado / adulte]
+    - 'Succès commercial' → [flop / moyen / blockbuster]
+
+    Pour une instance donnée, la prédiction ressemble à un vecteur [comédie, adulte, flop].
+
+    ---
+
+    ## B. Exemple sur le MNIST
+
+    Pour illustrer cette problématique de classification multi-output avec notre dataset, on va essayer d'implémenter un modèle qui supprime le bruit d’images manuscrites.
+
+    Côté prédicteurs : chaque instance est une image **bruitée**, dont les 784 pixels sont autant de features.
+
+    Côté labels (les "features cibles") : on va considérer 784 labels constitués d'autant de classes que de nuances de gris (256 au total).
+    - 'Pixel de la ligne 0 et colonne 0' -> [0 / 1 / 2 / ... / 255]
+    - 'Pixel de la ligne 0 et colonne 1' -> [0 / 1 / 2 / ... / 255]
+    - ...
+    - 'Pixel de la ligne 7 et colonne 7' -> [0 / 1 / 2 / ... / 255]
+
+    Pour une instance donnée, la prédiction associée correspond à une image **débruitée**. C'est un vecteur ligne de 784 colonnnes [0, 7, 126, ...].
+
+    ### Implémentation
+
+    Puisque les prédicteurs correspondront aux images bruitées, il va falloir générer artificiellement ce bruit. Une implémentation typique consiste à ajouter à chaque image un tableau de valeurs aléatoires (comprises entre 0 et 100 ici).
+    """)
+    return
+
+
+@app.cell
+def _(X_test, X_train, np, plot_digit, plt):
+    rng = np.random.default_rng(seed=42)
+
+    # On bruite les prédicteurs du train set
+    noise_train = rng.integers(0, 100, (len(X_train), 784))
+    X_train_mod = X_train + noise_train
+
+    # On bruite les prédicteurs du est set
+    noise_test = rng.integers(0, 100, (len(X_test), 784))
+    X_test_mod = X_test + noise_test
+
+    # Les labels sont les images débruitées (i.e. les images originales, nos anciens prédicteurs)
+    y_train_mod = X_train
+    y_test_mod = X_test
+
+    # On visualise la première instance du test set
+    plt.figure(figsize=(6, 2))
+    plt.subplot(121)
+    plot_digit(X_test_mod[0])
+    plt.title("Prédicteurs : image bruitée")
+    plt.subplot(122)
+    plot_digit(y_test_mod[0])
+    plt.title("Labels : image débruitée")
+    plt.show()
+    return X_test_mod, X_train_mod, y_test_mod, y_train_mod
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Il ne reste plus qu'à utiliser les nouveaux prédicteurs `X_train_mod` et les labels `y_train_mod` pour entraîner un modèle qui supporte la classification multiclasse, par exemple un KNN.
+    """)
+    return
+
+
+@app.cell
+def _(
+    X_test_mod,
+    X_train_mod,
+    knn_clf,
+    plot_digit,
+    plt,
+    y_test_mod,
+    y_train_mod,
+):
+    knn_clf.fit(X_train_mod, y_train_mod)
+
+    # Prédiction du modèle sur la première instance du test set
+    clean_digit = knn_clf.predict([X_test_mod[0]])
+
+    plt.figure(figsize=(5, 2))
+    plt.subplot(121)
+    plot_digit(y_test_mod[0])
+    plt.title("Labels : image débruitée")
+    plt.subplot(122)
+    plot_digit(clean_digit)
+    plt.title("Prédiction")
+    plt.show()
     return
 
 
