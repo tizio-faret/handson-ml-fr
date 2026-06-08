@@ -4,21 +4,21 @@ Adaptation française et enrichie des notebooks de *Hands-On Machine Learning wi
 Scikit-Learn and PyTorch* d'Aurélien Géron. Le code est adapté de
 [ageron/handson-mlp](https://github.com/ageron/handson-mlp) (licence Apache 2.0).
 
-Notebooks écrits avec Marimo : réactifs, stockés en fichiers texte et exécutables dans le navigateur via molab.
+Notebooks écrits avec Marimo : stockés en fichiers Python, réactifs (les cellules dépendantes se réexécutent), et très jolis.
 
 ## Chapitres
 
 | Chapitre | Sujet | Ouvrir |
 |---|---|---|
-| 2 | End-to-End ML Project (California Housing) | [Notebook (molab)](https://molab.marimo.io/github/tizio-faret/handson-ml-fr/blob/main/notebooks/chapitre_02.py/wasm) |
-| 3 | Classification | [Notebook (molab)](https://molab.marimo.io/github/tizio-faret/handson-ml-fr/blob/main/notebooks/chapitre_03.py/wasm) |
+| 2 | End-to-End ML Project (California Housing) | [Notebook en ligne](https://tizio-faret.github.io/handson-ml-fr/chapitre_02.html) |
+| 3 | Classification | [Notebook en ligne](https://tizio-faret.github.io/handson-ml-fr/chapitre_03.html) |
 
 Les chapitres suivants seront ajoutés au fil du temps.
 
-## Lancer en local (recommandé)
+## Lancer en local 
 
-L'entraînement des modèles abordés dans ces chapitres requiert une puissance de calcul importante. L'environnement web ne supportant pas le multi-threading, 
-je recommande vivement d'exécuter ces notebooks en local sur votre propre machine.
+L'entraînement des modèles abordés dans ces chapitres requiert une puissance de calcul importante : il n'est pas rare que l'exécution de certaines cellules 
+prenne plusieurs minutes.
 
 ```bash
 git clone https://github.com/tizio-faret/handson-ml-fr.git
@@ -30,7 +30,7 @@ marimo edit notebooks/chapitre_03.py # À adapter selon le chapitre
 
 ## Licence
 
-Code adapté de handson-ml3 (Apache 2.0, voir [`LICENSE`](LICENSE)).
+Code adapté de handson-mlp (Apache 2.0, voir [`LICENSE`](LICENSE)).
 
 
 
