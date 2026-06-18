@@ -1,4 +1,4 @@
-# Hands-On ML — portage français enrichi
+# Hands-On ML - adaptation française enrichie 
 
 Adaptation française et enrichie des notebooks de *Hands-On Machine Learning with
 Scikit-Learn and PyTorch* d'Aurélien Géron. Le code est adapté de
