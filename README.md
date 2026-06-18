@@ -5,8 +5,7 @@ Scikit-Learn and PyTorch* d'Aurélien Géron. Le code est adapté de
 [ageron/handson-mlp](https://github.com/ageron/handson-mlp) (licence Apache 2.0).
 
 J'y ajoute des sections originales, des démonstrations que le livre laisse de côté et des visualisations
-interactives.
-> Sur un chapitre comme le 4, une bonne moitié du contenu rédigé est originale.
+interactives. Sur un chapitre comme le 4, une bonne moitié du contenu rédigé est originale.
 
 Notebooks écrits avec Marimo : stockés en fichiers Python, réactifs (les cellules dépendantes se réexécutent), et très jolis.
 
@@ -28,9 +27,9 @@ prenne plusieurs minutes.
 ```bash
 git clone https://github.com/tizio-faret/handson-ml-fr.git
 cd handson-ml-fr
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt # Installe marimo et des packages Python
-marimo edit notebooks/chapitre_03.py # À adapter selon le chapitre
+python -m venv .venv && source .venv/bin/activate # Remplacer python par python3 en cas d'échec
+pip install -r requirements.txt 
+marimo edit notebooks/chapitre_04.py # À adapter selon le chapitre
 ```
 
 ## Licence
