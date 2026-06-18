@@ -8,10 +8,11 @@ Notebooks écrits avec Marimo : stockés en fichiers Python, réactifs (les cell
 
 ## Chapitres
 
-| Chapitre | Sujet | Ouvrir |
-|---|---|---|
-| 2 | End-to-End ML Project (California Housing) | [Notebook en ligne](https://tizio-faret.github.io/handson-ml-fr/chapitre_02.html) |
-| 3 | Classification | [Notebook en ligne](https://tizio-faret.github.io/handson-ml-fr/chapitre_03.html) |
+| Chapitre | Sujet | Ouvrir | Molab |
+|---|---|---|---|
+| 2 | End-to-End ML Project (California Housing) | [Notebook en ligne](https://tizio-faret.github.io/handson-ml-fr/chapitre_02.html) | |
+| 3 | Classification | [Notebook en ligne](https://tizio-faret.github.io/handson-ml-fr/chapitre_03.html) | |
+| 4 | Training models | [Notebook en ligne](https://tizio-faret.github.io/handson-ml-fr/chapitre_04.html) | [Notebook interactif](https://molab.marimo.io/github/tizio-faret/handson-ml-fr/blob/main/notebooks/chapitre_04.py/wasm) |
 
 Les chapitres suivants seront ajoutés au fil du temps.
 
