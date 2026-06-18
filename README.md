@@ -4,15 +4,19 @@ Adaptation française et enrichie des notebooks de *Hands-On Machine Learning wi
 Scikit-Learn and PyTorch* d'Aurélien Géron. Le code est adapté de
 [ageron/handson-mlp](https://github.com/ageron/handson-mlp) (licence Apache 2.0).
 
+J'y ajoute des sections originales, des démonstrations que le livre laisse de côté et des visualisations
+interactives.
+> Sur un chapitre comme le 4, une bonne moitié du contenu rédigé est originale.
+
 Notebooks écrits avec Marimo : stockés en fichiers Python, réactifs (les cellules dépendantes se réexécutent), et très jolis.
 
 ## Chapitres
 
-| Chapitre | Sujet | Ouvrir | Molab |
+| Chapitre | Sujet | Version web | Notebook interactif |
 |---|---|---|---|
-| 2 | End-to-End ML Project (California Housing) | [Notebook en ligne](https://tizio-faret.github.io/handson-ml-fr/chapitre_02.html) | |
-| 3 | Classification | [Notebook en ligne](https://tizio-faret.github.io/handson-ml-fr/chapitre_03.html) | |
-| 4 | Training models | [Notebook en ligne](https://tizio-faret.github.io/handson-ml-fr/chapitre_04.html) | [Notebook interactif](https://molab.marimo.io/github/tizio-faret/handson-ml-fr/blob/main/notebooks/chapitre_04.py/server) |
+| 2 | End-to-End ML Project (California Housing) | [Notebook statique](https://tizio-faret.github.io/handson-ml-fr/chapitre_02.html) | [Molab](https://molab.marimo.io/github/tizio-faret/handson-ml-fr/blob/main/notebooks/chapitre_02.py/server) |
+| 3 | Classification (MNIST) | [Notebook statique](https://tizio-faret.github.io/handson-ml-fr/chapitre_03.html) | [Molab](https://molab.marimo.io/github/tizio-faret/handson-ml-fr/blob/main/notebooks/chapitre_03.py/server) |
+| 4 | Training models | [Notebook statique](https://tizio-faret.github.io/handson-ml-fr/chapitre_04.html) | [Molab](https://molab.marimo.io/github/tizio-faret/handson-ml-fr/blob/main/notebooks/chapitre_04.py/server) |
 
 Les chapitres suivants seront ajoutés au fil du temps.
 
