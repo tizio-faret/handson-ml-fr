@@ -22,11 +22,18 @@ def _(mo):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _():
     import marimo as mo
 
-    return (mo,)
+    rouge = "#c53030"
+    orange = "#dd6b20"
+    gris = "#718096"
+    bleu = "#2b6cb0"
+    vert = "#2f855a"
+    violet = "#6b46c1"
+    jaune = "#fcbf49"
+    return bleu, gris, jaune, mo, orange, rouge, vert, violet
 
 
 @app.cell(hide_code=True)
@@ -68,7 +75,7 @@ def _(mo):
     - $h_{\boldsymbol{\theta}}$ est la fonction d'hypothèse, qui utilise les paramètres du modèle $\boldsymbol{\theta}$.
     - $\boldsymbol{\theta}$ est le *vecteur de paramètres* du modèle, contenant le terme de biais $\theta_0$ et les poids des features $\theta_1$ à $\theta_n$.
     - $\mathbf{x}$ est le *vecteur de features* de l'instance, contenant $x_0$ à $x_n$, avec $x_0$ toujours égal à 1.
-    - $\boldsymbol{\theta} \cdot \mathbf{x}$ est le produit scalaire des vecteurs $\boldsymbol{\theta}$ et $\mathbf{x}$, qui est égal à $\theta_0 x_0 + \theta_1 x_1 + \theta_2 x_2 + \dots + \theta_n x_n$.
+    - $\boldsymbol{\theta} \cdot \mathbf{x}$ est le produit scalaire des vecteurs $\boldsymbol{\theta}$ et $\mathbf{x}$, qui est égal à $\theta_0 \mathbf{x}_0 + \theta_1 \mathbf{x}_1 + \theta_2 \mathbf{x}_2 + \dots + \theta_n \mathbf{x}_n$.
 
     > On notera désormais les vecteurs en gras - c'est une convention assez courante.
 
@@ -79,7 +86,7 @@ def _(mo):
     $$\mathbf{y} = \mathbf{X} \boldsymbol{\theta} + \boldsymbol{\epsilon}$$
 
     - $\mathbf{y}$ est le vecteur colonne dont la i-ème ligne correspond au label ${y}^{(i)}$ de la i-ème instance.
-    - $\mathbf{X}$ est la matrice dont la i-ème ligne correspond au vecteur $\mathbf{x}^{(i)}$ de features de la i-ème instance.
+    - $\mathbf{X}$ est la matrice de **conception** ou de **design**, dont la i-ème ligne correspond au vecteur $\mathbf{x}^{(i)}$ de features de la i-ème instance.
     - $\boldsymbol{\theta}$ est le *vecteur de paramètres* du modèle. C'est **l'inconnue à déterminer**.
     - $\boldsymbol{\epsilon}$ est le vecteur colonne dont la i-ème ligne correspond au résidu ${\epsilon}^{(i)}={y}^{(i)} - \hat{y}^{(i)}$ associé à la i-ème instance.
 
@@ -157,13 +164,17 @@ def _():
 
 @app.cell(hide_code=True)
 def _(
+    bleu,
     montrer_optimal_2d,
     montrer_residus_2d,
     np,
+    orange,
     plt,
+    rouge,
     theta0_2d,
     theta1_2d,
     theta_opt_2d,
+    vert,
     x_2d,
     y_2d,
 ):
@@ -174,19 +185,19 @@ def _(
     _y_pred = _t0 + _t1 * x_2d
     _mse = float(np.mean((y_2d - _y_pred) ** 2))
     _fig, _ax = plt.subplots(figsize=(5, 4))
-    _ax.scatter(x_2d, y_2d, color="steelblue", s=35, alpha=0.8, label="Données", zorder=3)
+    _ax.scatter(x_2d, y_2d, color=bleu, s=35, alpha=0.8, label="Données", zorder=3)
 
     # Segments verticaux entre chaque point et la droite
     if montrer_residus_2d.value:
         for _xi, _yi, _ypi in zip(x_2d, y_2d, _y_pred):
-            _ax.plot([_xi, _xi], [_yi, _ypi], color="crimson", lw=0.8, alpha=0.5, zorder=2)
+            _ax.plot([_xi, _xi], [_yi, _ypi], color=rouge, lw=0.8, alpha=0.5, zorder=2)
 
     _xs = np.array([x_2d.min() - 0.1, x_2d.max() + 0.1])
-    _ax.plot(_xs, _t0 + _t1 * _xs, color="darkorange", lw=2.5, label=fr"$\hat{{y}} = {_t0:.1f} + {_t1:.1f}\,x$", zorder=4,)
+    _ax.plot(_xs, _t0 + _t1 * _xs, color=orange, lw=2.5, label=fr"$\hat{{y}} = {_t0:.1f} + {_t1:.1f}\,x$", zorder=4,)
 
     if montrer_optimal_2d.value:
         _b0, _b1 = theta_opt_2d
-        _ax.plot( _xs, _b0 + _b1 * _xs, color="seagreen", lw=2.0, ls="--", label=fr"Optimale : ${_b0:.2f} + {_b1:.2f}\,x$", zorder=4,)
+        _ax.plot( _xs, _b0 + _b1 * _xs, color=vert, lw=2.0, ls="--", label=fr"Optimale : ${_b0:.2f} + {_b1:.2f}\,x$", zorder=4,)
 
     _ax.set_xlabel("$x$")
     _ax.set_ylabel("$y$")
@@ -223,14 +234,18 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(
     N_3D,
+    bleu,
     montrer_optimal_3d,
     montrer_residus_3d,
     np,
+    orange,
     plt,
+    rouge,
     theta0_3d,
     theta1_3d,
     theta2_3d,
     theta_opt_3d,
+    vert,
     x1_3d,
     x2_3d,
     y_3d,
@@ -248,19 +263,19 @@ def _(
     # Le plan du modèle, tracé comme une surface sur la grille des prédicteurs.
     _g1, _g2 = np.meshgrid(np.linspace(0, 2, 12), np.linspace(0, 2, 12))
     _plan = _t0 + _t1 * _g1 + _t2 * _g2
-    _ax.plot_surface(_g1, _g2, _plan, alpha=0.35, color="darkorange", edgecolor="none")
+    _ax.plot_surface(_g1, _g2, _plan, alpha=0.35, color=orange, edgecolor="none")
 
     # Résidus : segments verticaux des points vers le plan.
     if montrer_residus_3d.value:
         for _i in range(N_3D):
-            _ax.plot([x1_3d[_i], x1_3d[_i]], [x2_3d[_i], x2_3d[_i]], [y_3d[_i], _y_pred[_i]], color="crimson", lw=0.7, alpha=0.5,)
+            _ax.plot([x1_3d[_i], x1_3d[_i]], [x2_3d[_i], x2_3d[_i]], [y_3d[_i], _y_pred[_i]], color=rouge, lw=0.7, alpha=0.5,)
 
     if montrer_optimal_3d.value:
         _b0, _b1, _b2 = theta_opt_3d
         _plan_opt = _b0 + _b1 * _g1 + _b2 * _g2
-        _ax.plot_wireframe(_g1, _g2, _plan_opt, color="seagreen", lw=0.8, alpha=0.6)
+        _ax.plot_wireframe(_g1, _g2, _plan_opt, color=vert, lw=0.8, alpha=0.6)
 
-    _ax.scatter(x1_3d, x2_3d, y_3d, color="steelblue", s=25, alpha=0.9, depthshade=True)
+    _ax.scatter(x1_3d, x2_3d, y_3d, color=bleu, s=25, alpha=0.9, depthshade=True)
 
     _ax.set_xlabel("$x_1$")
     _ax.set_ylabel("$x_2$")
@@ -338,9 +353,9 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(X_reg, plt, y_reg):
+def _(X_reg, bleu, plt, y_reg):
     plt.figure(figsize=(3, 2))
-    plt.plot(X_reg, y_reg, "b.")
+    plt.plot(X_reg, y_reg, ".", color=bleu)
     plt.xlabel("$x_1$")
     plt.ylabel("$y$", rotation=0)
     plt.axis([0, 2, 0, 15])
@@ -402,22 +417,34 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(X_reg, m_slider, np, plt, sigma_slider, theta_best_reg, y_reg):
+def _(
+    X_reg,
+    bleu,
+    gris,
+    m_slider,
+    np,
+    plt,
+    rouge,
+    sigma_slider,
+    theta_best_reg,
+    vert,
+    y_reg,
+):
     fig, (ax_theta, ax_data) = plt.subplots(1, 2, figsize=(10, 4))
 
     # Figure de gauche
 
-    ax_theta.scatter(4, 3, color="seagreen", s=180, marker="*", zorder=3,
+    ax_theta.scatter(4, 3, color=vert, s=180, marker="*", zorder=3,
                      label="Vraies valeurs (4, 3)")
 
     ax_theta.plot([4, theta_best_reg[0, 0]], [3, theta_best_reg[1, 0]],
-                  color="gray", ls="--", lw=0.8, alpha=0.6, zorder=2)
+                  color=gris, ls="--", lw=0.8, alpha=0.6, zorder=2)
 
-    ax_theta.scatter(theta_best_reg[0, 0], theta_best_reg[1, 0], color="crimson", s=90, zorder=4,
+    ax_theta.scatter(theta_best_reg[0, 0], theta_best_reg[1, 0], color=rouge, s=90, zorder=4,
                      label=f"Estimation ({theta_best_reg[0,0]:.2f}, {theta_best_reg[1,0]:.2f})")
 
-    ax_theta.axhline(3, color="gray", lw=0.5, alpha=0.4)
-    ax_theta.axvline(4, color="gray", lw=0.5, alpha=0.4)
+    ax_theta.axhline(3, color=gris, lw=0.5, alpha=0.4)
+    ax_theta.axvline(4, color=gris, lw=0.5, alpha=0.4)
 
     ax_theta.set_xlabel(r"$\theta_0$")
     ax_theta.set_ylabel(r"$\theta_1$", rotation=0)
@@ -430,11 +457,11 @@ def _(X_reg, m_slider, np, plt, sigma_slider, theta_best_reg, y_reg):
 
     # Figure de droite
 
-    ax_data.plot(X_reg, y_reg, "b.", markersize=3)
+    ax_data.plot(X_reg, y_reg, ".", color=bleu, markersize=5)
 
     x_line = np.array([0, 2])
     y_line = theta_best_reg[0, 0] + theta_best_reg[1, 0] * x_line
-    ax_data.plot(x_line, y_line, "r-", label="Régression linéaire")
+    ax_data.plot(x_line, y_line, "-", color=rouge, label="Régression linéaire")
 
     ax_data.set_xlabel("$x_1$")
     ax_data.set_ylabel("$y$", rotation=0)
@@ -566,7 +593,7 @@ def _(X, y):
 
     print("--- `lin_reg.intercept_` et `lin_reg.coef_` ---")
     print(f"Ordonnée à l'origine estimée : {lin_reg.intercept_[0]:.3f} \nPente estimée : {lin_reg.coef_[0,0]:.3f}")
-    return (lin_reg,)
+    return LinearRegression, lin_reg
 
 
 @app.cell(hide_code=True)
@@ -666,7 +693,7 @@ def _(rank, s):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ### SVD : complexité computationnelle
+    ### SVD : complexité computationnelle <a id="complexite-svd"></a>
 
     Petit bilan. On rappelle que $m$ correspond au nombre d'instances et $n$ au nombre de features. En pratique, on a $m \gg n$ la plupart du temps - important pour ce qui suit.
 
@@ -920,6 +947,7 @@ def _(np):
     return (
         K_raw,
         K_sc,
+        StandardScaler,
         T1_raw,
         T1_sc,
         T2_raw,
@@ -979,6 +1007,14 @@ def _(
 
     _fig.tight_layout()
     _fig
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    **Mais ducoup ça casse l'interpratibilité des coefficients estimés ??**
+    """)
     return
 
 
@@ -1078,14 +1114,14 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(X, X_b, X_new, X_new_b, eta_slider, np, plt, y):
+def _(X, X_b, X_new, X_new_b, bleu, eta_slider, np, plt, y):
     import matplotlib as mpl
 
     def plot_gradient_descent(theta, eta, n_epochs=1000, n_shown=20):
         _m = len(X_b)
         _theta = theta.copy()                       # ne pas écraser l'origine partagée
         _fig, _ax = plt.subplots(figsize=(5, 3))
-        _ax.plot(X, y, "b.")
+        _ax.plot(X, y, ".", color=bleu)
         for _epoch in range(n_epochs):
             if _epoch < n_shown:
                 _y_predict = X_new_b @ _theta
@@ -1146,10 +1182,10 @@ def _(X_b, gd_opt, np, y):
 
 
 @app.cell(hide_code=True)
-def _(epochs, etas, i, plt):
+def _(epochs, etas, i, plt, rouge, vert):
     _fig, _ax = plt.subplots(figsize=(5, 3))
-    _ax.plot(etas, epochs, color="crimson", lw=2)
-    _ax.scatter(etas[i], epochs[i], color="seagreen", s=70, zorder=5,
+    _ax.plot(etas, epochs, color=rouge, lw=2)
+    _ax.scatter(etas[i], epochs[i], color=vert, s=70, zorder=5,
                 label=f"optimum ($\\eta$={etas[i]:.3f})")
     _ax.set_xlabel(r"$\eta$ (learning rate)")
     _ax.set_ylabel(r"itérations avant $\|\theta_k-\hat\theta\|<10^{-4}$")
@@ -1307,14 +1343,14 @@ def _(X_b, gd_opt, np, y):
 
 
 @app.cell(hide_code=True)
-def _(ep_axis, mse_batch, mse_opt, mse_sgd, plt):
+def _(ep_axis, mse_batch, mse_opt, mse_sgd, plt, rouge, violet):
     _fig, (_ax1, _ax2) = plt.subplots(1, 2, figsize=(11, 4.2), sharey=True)
 
-    _ax1.plot(range(len(mse_batch)), mse_batch - mse_opt, color="navy", lw=1.8)
+    _ax1.plot(range(len(mse_batch)), mse_batch - mse_opt, color=violet, lw=1.8)
     _ax1.set_title("Descente de gradient batch")
     _ax1.set_ylabel(r"$\mathrm{MSE}(\theta_k) - \mathrm{MSE}(\hat{\theta})$")
 
-    _ax2.plot(ep_axis, mse_sgd - mse_opt, color="crimson", lw=0.7)
+    _ax2.plot(ep_axis, mse_sgd - mse_opt, color=rouge, lw=0.7)
     _ax2.set_title("Descente de gradient stochastique")
 
     for _ax in (_ax1, _ax2):
@@ -1451,7 +1487,7 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(X, X_b, X_new, X_new_b, m, mpl, np, plt, y):
+def _(X, X_b, X_new, X_new_b, bleu, m, mpl, np, plt, y):
     n_epochs = 50
     t0, t1 = 5, 50  # learning schedule hyperparameters
 
@@ -1469,7 +1505,7 @@ def _(X, X_b, X_new, X_new_b, m, mpl, np, plt, y):
         shuffled_indices = _rng.permutation(m)
         iteration = 0
         for idx in shuffled_indices:
-        
+
             # extra code – these 4 lines are used to generate the figure
             if epoch == 0 and iteration < n_shown:
                 _y_predict = X_new_b @ theta_sgd
@@ -1486,7 +1522,7 @@ def _(X, X_b, X_new, X_new_b, m, mpl, np, plt, y):
             theta_path_sgd.append(theta_sgd)  # extra code – to generate the figure
 
     # extra code – this section beautifies Figure 4–10
-    plt.plot(X, y, "b.")
+    plt.plot(X, y, ".", color=bleu)
     plt.xlabel("$x_1$")
     plt.ylabel("$y$", rotation=0)
     plt.axis([0, 2, 0, 15])
@@ -1632,7 +1668,7 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(np, plt):
+def _(jaune, np, orange, plt, rouge):
     _data_rng = np.random.default_rng(seed=42)
     _m = 200
     _X = 2 * _data_rng.random((_m, 1))
@@ -1682,15 +1718,526 @@ def _(np, plt):
             _theta_path_mgd.append(_theta)
     _theta_path_mgd = np.array(_theta_path_mgd)
 
-    plt.figure(figsize=(7, 4))
-    plt.plot(_theta_path_sgd[:, 0], _theta_path_sgd[:, 1], "r-s", linewidth=1, label="Stochastic")
-    plt.plot(_theta_path_mgd[:, 0], _theta_path_mgd[:, 1], "g-+", linewidth=2, label="Mini-batch")
-    plt.plot(_theta_path_bgd[:, 0], _theta_path_bgd[:, 1], "b-o", linewidth=3, label="Batch")
+    plt.figure(figsize=(6, 4))
+    plt.plot(_theta_path_sgd[:, 0], _theta_path_sgd[:, 1], "-s", color = rouge, linewidth=1, label="Stochastic")
+    plt.plot(_theta_path_mgd[:, 0], _theta_path_mgd[:, 1], "-+", color = orange, linewidth=2, label="Mini-batch")
+    plt.plot(_theta_path_bgd[:, 0], _theta_path_bgd[:, 1], "-o", color = jaune, linewidth=3, label="Batch")
     plt.legend(loc="upper left")
     plt.xlabel(r"$\theta_0$")
     plt.ylabel(r"$\theta_1$   ", rotation=0)
     plt.axis([2.7, 4.5, 2.6, 3.7])
     plt.grid()
+    plt.show()
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    # III. Régression polynomiale
+
+    ## A. Principe général
+
+    L'implémentation de la **régression polynomiale**, qui consiste à prédire une variable cible à partir d'un polynôme de ses prédicteurs, ne différe pas beaucoup de celle de la régression linéaire.
+
+    En effet, si on dispose de deux prédicteurs $\mathbf{x}_{1}$ et $\mathbf{x}_{1}$, il suffit d'ajouter les vecteurs de features $\mathbf{x}_{1}²$, $\mathbf{x}_{1}³$, $\mathbf{x}_{2}²$, $\mathbf{x}_{2}³$, etc.. à la matrice de design puis de faire une régression linéaire à partir de ces nouvelles features.
+
+    On génère un jeu de données non linéaire à un seul prédicteur, utile pour la suite.
+    """)
+    return
+
+
+@app.cell
+def _(np):
+    _rng = np.random.default_rng(seed=42)
+    _m = 200 
+
+    X_polreg_raw = 6 * _rng.random((_m, 1)) - 3
+    y_polreg = 0.5 * X_polreg_raw ** 2 + X_polreg_raw + 2 + _rng.standard_normal((_m, 1))
+    return X_polreg_raw, y_polreg
+
+
+@app.cell(hide_code=True)
+def _(X_polreg_raw, bleu, plt, y_polreg):
+    plt.figure(figsize=(4, 2))
+    plt.plot(X_polreg_raw, y_polreg, ".",color=bleu)
+    plt.title("Visualisation du jeu de données")
+    plt.xlabel("$x_1$")
+    plt.ylabel("$y$", rotation=0)
+    plt.axis([-3, 3, 0, 10])
+    plt.grid()
+
+    plt.show()
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ---
+
+    ## B. Implémentation avec Scikit-Learn
+
+    L'implémentation se fait en deux temps :
+    1. `PolynomialFeatures` : On crée des features en mettant au carré, au cube etc.. les features initiales
+    2. `LinearRegression` : On entraîne un modèle de régression linéaire classique avec ces nouveaux prédicteurs
+
+    Dans le code ci-dessous, on précise `degree=2` lors de l'appel de `PolynomialFeatures`, de sorte qu'on ajoute seulement la feature $\mathbf{x}_{1}²$ (notre dataset initial n'a qu'un seul prédicteur).
+
+    On a donc :
+
+    $$\hat{\mathbf{y}} = \theta_0 + \theta_1 \mathbf{x}_{1} + \theta_2 \mathbf{x}_{1}² $$
+
+    Ou encore $\hat{\boldsymbol{y}} = \mathbf{X} \boldsymbol{\theta}$, avec :
+
+    $$\mathbf{X} = \begin{bmatrix} 1 & \mathbf{x}_1^{(1)} & \mathbf{x}_2^{(1)} \\ \vdots & \vdots & \vdots \\ 1 & \mathbf{x}_1^{(m)} & \mathbf{x}_2^{(m)} \end{bmatrix} \quad\text{où}\quad \mathbf{x}_{2}^{(i)}=\left( \mathbf{x}_{1}^{(i)} \right)^{2}$$
+    """)
+    return
+
+
+@app.cell
+def _(X_polreg_raw, mo):
+    from sklearn.preprocessing import PolynomialFeatures
+
+    poly_features = PolynomialFeatures(degree=2, include_bias=False)
+    X_polreg_poly = poly_features.fit_transform(X_polreg_raw)
+
+    mo.md(rf"$\mathbf{{x}}_1^{{(1)}} = {X_polreg_poly[0][0]:.3f}$ ; $\mathbf{{x}}_2^{{(1)}} = {X_polreg_poly[0][1]:.3f}$ ")
+    return PolynomialFeatures, X_polreg_poly
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    On a plus qu'à entraîner notre modèle de régression linéaire sur `X_poly`
+    """)
+    return
+
+
+@app.cell
+def _(LinearRegression, X_polreg_poly, y_polreg):
+    lin_pol_reg = LinearRegression()
+    lin_pol_reg.fit(X_polreg_poly, y_polreg)
+
+    print(f"Estimation de theta_0 : {lin_pol_reg.intercept_[0]:.3f} \nEstimation de theta_1 : {lin_pol_reg.coef_[0][0]:.3f} \nEstimation de theta_2 : {lin_pol_reg.coef_[0][1]:.3f}")
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    > `LinearRegression` : le biais est stocké dans l'attribut `intercept_` tandis que les autres paramètres sont stockés dans l'attribut `.coef_`.
+
+    ### Intégration dans une pipeline
+
+    Le mieux consiste quand même à intégrer `PolynomialFeatures` et `LinearRegression` dans une pipeline, de sorte qu'on **génère automatiquement** les nouvelles features lorsqu'on traite de nouvelles instances pour faire des prédictions.
+
+    Ça a aussi l'avantage de rendre l'intégration plus concise et lisible.
+    """)
+    return
+
+
+@app.cell
+def _(LinearRegression, PolynomialFeatures, X_polreg_raw, y_polreg):
+    from sklearn.pipeline import Pipeline
+
+    poly_reg = Pipeline([
+        ("polynomial_features", PolynomialFeatures(degree=2, include_bias=False)),
+        ("linear_regression", LinearRegression()),
+    ])
+
+    _ = poly_reg.fit(X_polreg_raw, y_polreg)
+    return (poly_reg,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Pour tracer la courbe $\hat{\boldsymbol{y}} = \mathbf{X} \boldsymbol{\theta}$, on utilise `np.linspace(-3, 3, 100)` pour créer 100 points régulièrement espacés entre -3 et 3. On crée ensuite un vecteur de 100 prédictions, et on trace les 100 points !
+    """)
+    return
+
+
+@app.cell
+def _(np, poly_reg):
+    X_polreg_new = np.linspace(-3, 3, 100).reshape(100, 1)
+    y_polreg_new = poly_reg.predict(X_polreg_new)
+    return X_polreg_new, y_polreg_new
+
+
+@app.cell(hide_code=True)
+def _(X_polreg_new, X_polreg_raw, bleu, orange, plt, y_polreg, y_polreg_new):
+    plt.figure(figsize=(4, 2))
+    plt.plot(X_polreg_raw, y_polreg, ".",color=bleu)
+    plt.plot(X_polreg_new, y_polreg_new, "-", color=orange, linewidth=2, label="Predictions")
+    plt.xlabel("$x_1$")
+    plt.ylabel("$y$", rotation=0)
+    plt.legend(loc="upper left")
+    plt.axis([-3, 3, 0, 10])
+    plt.grid()
+    plt.show()
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ## C. Degré du polynôme de régression
+
+    ### Explosion combinatoire
+
+    Lorsqu'il y a plusieurs features, la régression qu'on a implémentée a la particularité de pouvoir exhiber des relations entre les features elle-même : c'est dû à `PolynomialFeatures`. Si on dispose de deux prédicteurs $x_1$ et $x_2$, `PolynomialFeatures` ajoute
+
+    $$x_1^2 \ , x_2^2 \ , x_1^3 \ , x_2^3 $$
+
+    mais ajoute aussi les **termes d'interaction**
+
+    $$x_1x_2,\ x_1^2x_2,\ x_1x_2^2.$$
+
+    En notant $d$ le degré maximum fixé (option `degree`), et $n$ le nombre de features pré-existantes, un appel à `PolynomialFeatures` crée exactement $\displaystyle \frac{n+d}{n! \mathpunct{} d!}$ features.
+
+    Attention donc à l'explosion combinatoire du nombre de features, d'autant que celui [intervient au carré dans le coût asymptotique de la SVD](#complexite-svd).
+
+    # IV. Courbes d'apprentissage
+
+    Cette explosion combinatoire n'est pas le seul inconvénient de réaliser une régression polynomiale à haut degré.
+
+    ## A. Overfitting et phénomène de Runge
+
+    La régression polynomiale à haut degré a un autre défaut : de tels modèles tendent à « coller » aux données, les conduisant à **apprendre le bruit** des données et à perdre en capacité de généralisation.
+
+    Concrètement, les polynômes de degré élevé **oscillent violemment** près des bords des données et **en dehors de la plage d'entraînement ils divergent** vers ±∞, dominés par le terme de plus haut degré. C'est le **phénomène de Runge**. On l'observe très nettement sur la figure ci-dessous.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    degree_slider = mo.ui.slider(
+        start=2, stop=300, step=1, value=300,
+        label=r"Degré du polynôme", show_value=True,
+    )
+    degree_slider
+    return (degree_slider,)
+
+
+@app.cell(hide_code=True)
+def _(
+    LinearRegression,
+    PolynomialFeatures,
+    StandardScaler,
+    X_polreg_new,
+    X_polreg_raw,
+    bleu,
+    degree_slider,
+    jaune,
+    orange,
+    plt,
+    rouge,
+    y_polreg,
+):
+    from sklearn.pipeline import make_pipeline
+
+    plt.figure(figsize=(6, 4))
+    # (format = style+marqueur, couleur, épaisseur, degré)
+    for fmt, _color, width, degree in (("-+", rouge, 3, 1),("--", orange, 4, 2),("-",  jaune, 2, degree_slider.value),):
+        polybig_features = PolynomialFeatures(degree=degree, include_bias=False)
+        std_scaler = StandardScaler()
+        _lin_reg = LinearRegression()
+        polynomial_regression = make_pipeline(polybig_features, std_scaler, _lin_reg)
+        polynomial_regression.fit(X_polreg_raw, y_polreg)
+        y_newbig = polynomial_regression.predict(X_polreg_new)
+        label = f"{degree} degree{'s' if degree > 1 else ''}"
+        plt.plot(X_polreg_new, y_newbig, fmt, color=_color, label=label, linewidth=width)
+
+    plt.plot(X_polreg_raw, y_polreg, ".", color=bleu, markersize=6)  # données en gris ardoise foncé
+    plt.legend(loc="upper left")
+    plt.xlabel("$x_1$")
+    plt.ylabel("$y$", rotation=0)
+    plt.axis([-3, 3, 0, 10])
+    plt.grid(True, alpha=0.3)  # grille atténuée pour ne pas surcharger
+    plt.show()
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    À la vue de ce graphique, le lecteur attentif conclura à l'importance du second degré..
+
+    > Cas extrême du phénomène de Runge : il existe des configurations où l'écart maximal entre la fonction et son polynôme interpolateur augmente indéfiniment avec $n$, degré du polynôme égal au nombre de points d'interpolation. La démonstration ci-dessous présente un exemple d'un tel cas.
+
+    /// details | Cas extrême du phénomène de Runge - démonstration (pour aller plus loin)
+    ///
+
+    [insérer section sur l'intérêt des bases orthogonales]
+
+    ---
+    ## B. Trouver le bon degré
+
+    Tandis que la régression linéaire échoue à capturer la structure sous-jacente des données (**underfitting**), les polynômes de degré 20 et + semblent largement sujets à l'**overfitting**.
+
+    Une des difficultés principale de la régression polynomiale consiste donc à trouver le bon degré, le bon **compromis** entre sous-apprentissage et sur-apprentissage.
+
+    > Ici, on a généré nous même les données à partir d'une relation quadratique, donc la courbe en bleue convient sans surprises ; mais la plupart du temps, la fonction de génération est une information dont on ne dispose pas.
+
+    On se propose d'étudier différents outils pour guider la sélection de notre modèle et évaluer sa propension à l'overfitting/underfitting.
+    1. Observer la distribution des données
+    2. Comparer l'erreur d'entraînement et l'erreur de validation
+    3. Utiliser des _learning curves_
+    4. [splines ?]
+
+    ---
+
+    ## C. Observer la distribution des données
+
+    En régression polynomiale, une pratique utile et peu coûteuse consiste à jeter un oeil à la distribution des données. Ça permet de se donner une idée du degré à fixer, ce qui est appréciable au vu du coût prohibitif du nombre de features.
+
+    On génère quelques distributions bruitées à titre d'exemple.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(np, plt, vert):
+    _rng = np.random.default_rng(seed=42)
+    _m = 3000
+    _x = 6 * _rng.random(_m) - 3          # x dans [-3, 3]
+
+    _polynomes = {
+        "Degré 1 : x + 1":                              [1, 1],
+        "Degré 2 : 0.5x² + x + 2":                      [0.5, 1, 2],
+        "Degré 3 : 0.3x³ − 0.5x² + x + 2":              [0.3, -0.5, 1, 2],
+        "Degré 4 : 0.1x⁴ + 0.2x³ − 0.5x² + x + 1":      [0.1, 0.2, -0.5, 1, 1],
+        "Degré 5 : 0.05x⁵ − 0.1x⁴ + 0.2x³ − 0.5x² + x + 2": [0.05, -0.1, 0.2, -0.5, 1, 2],
+        "Degré 6 : 0.02x⁶ + 0.05x⁵ − 0.1x⁴ + 0.2x³ − 0.5x² + x + 2": [0.02, 0.05, -0.1, 0.2, -0.5, 1, 2],
+    }
+
+    _n_cols = 3
+    _n_lignes = 2
+    _fig, _axes = plt.subplots(_n_lignes, _n_cols, figsize=(15, 8))
+    _axes = _axes.flatten()
+
+    for _i, (_titre, _coeffs) in enumerate(_polynomes.items()):
+        _ax = _axes[_i]
+        _signal = np.polyval(_coeffs, _x)
+        _bruit = _rng.standard_normal(_m)
+        _y = _signal + _bruit
+
+        _ax.plot(_x, _y, ".", color=vert, markersize=4, alpha=0.5)
+        _ax.set_title(_titre, fontsize=10)
+        _ax.set_xlabel("$x_1$")
+        _ax.set_ylabel("$y$", rotation=0)
+        _ax.grid(True, alpha=0.3)
+
+    _fig.suptitle("Jeux de données polynomiaux bruités (degré 1 à 6)", fontsize=14)
+    _fig.tight_layout()
+    _fig
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Cette approche a ses limites, on constate qu'on a vite fait de confondre un polynôme de degré 6 avec un polynôme de degré 3.
+
+    Mais on ne confondrait pas une droite affine avec un polynôme de degré 2 : puisque cette visualisation ne coûte rien, autant ne pas s'en priver.
+
+    ---
+
+    ## D. Erreur d'entraînement vs. erreur de validation
+
+    ### Intuition
+
+    Le phénomène d'overfitting survient lorsqu'un modèle « colle » trop aux données d'entraînement, au point que sa capacité de prédiction face à des données jamais rencontrées soit dégradée.
+
+    Intuitivement, sa propension à coller aux données d'entraînement s'observe lorsqu'on demande au modèle de prédire la variable cible d'une instance sur laquelle il a été entraîné. C'est l'**erreur d'entraînement**.
+
+    Une erreur d'entraînement faible ne signifie pas forcément que le modèle overfitte ; peut-être que notre modèle est très performant et que le training set est peu bruité. Il faut mettre cette erreur en **perspective** avec la qualité de ses prédictions sur des données qu'il n'a **jamais vues**.
+
+    Cette dernière mesure s'obtient typiquement grâce à un entraînement par validation croisée  (voir chapitre 2), à l'issue duquel on obtient une mesure de la capacité de généralisation du modèle : l'**erreur de validation**.
+
+    On appelle parfois **écart de généralisation** la différence entre les deux erreurs.
+
+    ### Visualisation
+
+    La visualisation interactive ci-dessous illustre ce principe.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    overfit_degree_slider = mo.ui.slider(
+        start=1, stop=15, value=1, step=1,
+        label="Degré du polynôme",
+        show_value=True,
+    )
+    overfit_degree_slider
+    return (overfit_degree_slider,)
+
+
+@app.cell(hide_code=True)
+def _(bleu, gris, np, overfit_degree_slider, plt, rouge):
+    import warnings
+
+    # Jeu de données synthétique : fonction sinus
+    _rng = np.random.default_rng(0)
+    _x_train = np.sort(_rng.uniform(0.0, 1.0, 30))
+    _true_fn = lambda _t: np.sin(2.0 * np.pi * _t)
+    _y_train = _true_fn(_x_train) + _rng.normal(0.0, 0.25, _x_train.size)
+
+    _degrees = np.arange(1, 16)
+    _n_folds = 5
+
+    def _polyfit_quiet(_xx, _yy, _deg):
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", np.exceptions.RankWarning)
+            return np.polyfit(_xx, _yy, _deg)
+
+    # Erreur d'entraînement : MSE sur l'ensemble du training set
+    def _train_mse(_deg):
+        _coef = _polyfit_quiet(_x_train, _y_train, _deg)
+        return float(np.mean((np.polyval(_coef, _x_train) - _y_train) ** 2)), _coef
+
+    # Erreur de validation : MSE moyenne par validation croisée à 5 plis
+    def _val_mse(_deg):
+        _shuf = np.random.default_rng(42).permutation(_x_train.size)
+        _folds = np.array_split(_shuf, _n_folds)
+        _errs = []
+        for _i in range(_n_folds):
+            _vi = _folds[_i]
+            _ti = np.concatenate([_folds[_j] for _j in range(_n_folds) if _j != _i])
+            _pred = np.polyval(_polyfit_quiet(_x_train[_ti], _y_train[_ti], _deg), _x_train[_vi])
+            _errs.append(np.mean((_pred - _y_train[_vi]) ** 2))
+        return float(np.mean(_errs))
+
+    _train_curve = np.array([_train_mse(_d)[0] for _d in _degrees])
+    _val_curve = np.array([_val_mse(_d) for _d in _degrees])
+    _best_deg = int(_degrees[np.argmin(_val_curve)])
+
+    # Degré sélectionné via slider 
+    _d = int(overfit_degree_slider.value)
+    _cur_train, _cur_coef = _train_mse(_d)
+    _cur_val = _val_curve[_d - 1]
+
+    # Figure : ajustement gauche/droite
+    _fig, (_axL, _axR) = plt.subplots(1, 2, figsize=(12, 4.6))
+    _grid = np.linspace(0, 1, 400)
+
+    _axL.scatter(_x_train, _y_train, s=34, color="#2b6cb0", zorder=3, label="Données d'entraînement")
+    _axL.plot(_grid, _true_fn(_grid), "--", color="#718096", lw=1.8, label="Fonction réelle")
+    _axL.plot(_grid, np.clip(np.polyval(_cur_coef, _grid), -3, 3), color="#dd6b20", lw=2.2,
+              label=f"Modèle ajusté (degré {_d})")
+    _axL.set_ylim(-2.2, 2.2)
+    _axL.set_xlabel("x"); _axL.set_ylabel("y")
+    _axL.set_title(f"Ajustement du modèle — degré {_d}")
+    _axL.legend(loc="upper right", fontsize=8.5, framealpha=0.9)
+
+    _axR.semilogy(_degrees, _train_curve, "o-", color="#2b6cb0", lw=1.8, ms=5, label="Erreur d'entraînement")
+    _axR.semilogy(_degrees, _val_curve, "s-", color="#c53030", lw=1.8, ms=5, label="Erreur de validation")
+    _axR.axvline(_best_deg, color="#38a169", ls="--", lw=1.4, alpha=0.8)
+    _axR.text(_best_deg + 0.2, _val_curve.min() * 1.7, "meilleur\ncompromis",
+              color="#38a169", fontsize=8, va="bottom", ha="left")
+
+    # Écart de généralisation au degré courant
+    _axR.plot([_d, _d], [_cur_train, _cur_val], color=gris, lw=6, alpha=0.55, solid_capstyle="round")
+    _axR.scatter([_d, _d], [_cur_train, _cur_val], color=[bleu, rouge], s=70, zorder=5, ec="white")
+    _axR.set_xlabel("Degré du polynôme (complexité du modèle)")
+    _axR.set_ylabel("MSE (échelle log)")
+    _axR.set_title(f"Écart de généralisation au degré {_d} : {_cur_val - _cur_train:.3f}")
+    _axR.set_xticks(_degrees)
+    _axR.legend(loc="upper left", fontsize=8.5)
+    _fig.tight_layout()
+
+    _fig
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Deux critères permettent de déterminer le meilleur compromis :
+    - L'écart de généralisation
+    - La moyenne des erreurs
+
+    En fixant un degré de 1 ou de 2, notre modèle ne réalise ni sur-apprentissage ni sous-apprentissage, mais ses prédictions sont fondamentalement assez **mauvaises**. On considère donc ici que la régression polynomiale de degré 3 est la meilleure, bien que son écart de généralisation ne soit pas le plus petit de tous.
+
+    ### Implémentation
+
+    La façon la plus concise de calculer ces erreurs en gérant les deux types d'entraînements consiste à utiliser `cross_validate`.
+
+    L'implémentation suivante mobilise le jeu de données et la pipeline précédemment créés.
+    """)
+    return
+
+
+@app.cell
+def _(X_polreg_raw, np, poly_reg, y_polreg):
+    from sklearn.model_selection import cross_validate
+
+    res = cross_validate(poly_reg, X_polreg_raw, y_polreg, cv=5, scoring="neg_root_mean_squared_error", return_train_score=True)
+
+    tab_mse_train_error = -res["train_score"]
+    tab_mse_validation_error = -res["test_score"]
+
+    print(f"Erreur d'entraînement : {np.mean(tab_mse_train_error):.3f}\nErreur de validation : {np.mean(tab_mse_validation_error):.3f} ")
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ---
+
+    ## E. Learning curves
+
+    Si l'écart de généralisation constitue déjà un bon indicateur, il peut être plus instructif d'étudier, pour un modèle donné, son évolution au cours de l'entraînement du modèle.
+
+    Concrètement, il s'agit de mesurer l'erreur d'entraînement et l'erreur de validation à chaque itération de `partial_fit()`, puis de tracer cette évolution. Les deux courbes que l'on obtient sont appelées **learning curves** (courbes d'entraînement).
+
+    > Si le modèle ne supporte pas l'apprentissage incréméntal - i.e. ne dispose pas nativement de la méthode `partial_fit()` - , il suffit de le ré-entraîner complètement sur des sous-ensemble du training set de tailles croissantes.
+
+    ### Implémentation Scikit
+
+    Scikit-Learn facilite à nouveau l'implémentation avec la fonction `learning_curve()`.
+
+    La fonction itère sur différentes tailles de training set, et renvoie trois tableaux dont les éléments correspondent chacune à une itération.
+    1. `train_sizes_abs` : les tailles successives des training subsets
+    2. `train_scores` : l'erreur d'entraînement sur le subset courant
+    3. `test_scores` : les $k$ erreurs de validation sur les $k$ splits du subset courant
+
+    > L'option `exploit_incremental_learning=True` permet d'entraîner les modèles incrémentalement.
+    """)
+    return
+
+
+@app.cell
+def _(LinearRegression, X_polreg_raw, np, y_polreg):
+    from sklearn.model_selection import learning_curve
+
+    train_sizes, train_scores, valid_scores = learning_curve(
+        LinearRegression(), X_polreg_raw, y_polreg, train_sizes=np.linspace(0.01, 1.0, 40), cv=5,
+        scoring="neg_root_mean_squared_error")
+
+    train_errors = -train_scores.mean(axis=1)
+    valid_errors = -valid_scores.mean(axis=1)
+    return train_errors, train_sizes, valid_errors
+
+
+@app.cell(hide_code=True)
+def _(bleu, plt, rouge, train_errors, train_sizes, valid_errors):
+    plt.figure(figsize=(5, 3))  # extra code – not needed, just formatting
+    plt.plot(train_sizes, train_errors, "-+",color=rouge, linewidth=2, label="entraînement")
+    plt.plot(train_sizes, valid_errors, "-",color=bleu, linewidth=3, label="validation")
+
+    # extra code – beautifies Figure 4–15
+    plt.xlabel("Taille du training set")
+    plt.ylabel("RMSE")
+    plt.grid()
+    plt.legend(loc="upper right")
+    plt.axis([0, 160, 0, 2.5])
+
     plt.show()
     return
 
