@@ -5,7 +5,7 @@ Scikit-Learn and PyTorch* d'Aurélien Géron. Le code est adapté de
 [ageron/handson-mlp](https://github.com/ageron/handson-mlp) (licence Apache 2.0).
 
 J'y ajoute des sections originales, des démonstrations que le livre laisse de côté et des visualisations
-interactives. Sur un chapitre comme le 4, une bonne moitié du contenu rédigé est originale.
+interactives.** Sur un chapitre comme le 4, une bonne moitié du contenu rédigé est originale.**
 
 Notebooks écrits avec Marimo : stockés en fichiers Python, réactifs (les cellules dépendantes se réexécutent), et très jolis.
 
