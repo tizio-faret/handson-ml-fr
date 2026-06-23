@@ -1013,7 +1013,10 @@ def _(
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    **Mais ducoup ça casse l'interpratibilité des coefficients estimés ??**
+    Mais ducoup, cette transformation détruit l'interpretabilité ?
+
+    - Concernant les coefficients estimés : non, au contraire. L'ordre de grandeur des coefficients était initialement corrélé à l'importance des features associées mais aussi à l'ordre de grandeur de ces mêmes features. **La standardisation permet d'interpréter l'importance des paramètres**.
+    - Concernant les variables (features) : non plus. La standardisation est réversible (le transformer `StandardScaler` dispose de la méthode `inverse_transform`) et ne s'applique pas à la feature cible.
     """)
     return
 
@@ -1496,17 +1499,16 @@ def _(X, X_b, X_new, X_new_b, bleu, m, mpl, np, plt, y):
 
     theta_path_sgd = [] 
     _rng = np.random.default_rng(seed=42)    
-    theta_sgd = _rng.standard_normal((2, 1))  # randomly initialized model parameters
+    theta_sgd = _rng.standard_normal((2, 1)) 
 
-    n_shown = 20  # extra code – just needed to generate the figure below
-    plt.figure(figsize=(6, 4))  # extra code – not needed, just formatting
+    n_shown = 20
+    plt.figure(figsize=(6, 4)) 
 
     for epoch in range(n_epochs):
         shuffled_indices = _rng.permutation(m)
         iteration = 0
         for idx in shuffled_indices:
 
-            # extra code – these 4 lines are used to generate the figure
             if epoch == 0 and iteration < n_shown:
                 _y_predict = X_new_b @ theta_sgd
                 color = mpl.colors.rgb2hex(plt.cm.OrRd(iteration / n_shown + 0.15))
@@ -1519,9 +1521,8 @@ def _(X, X_b, X_new, X_new_b, bleu, m, mpl, np, plt, y):
             theta_sgd    = theta_sgd - eta * gradients
             iteration += 1
 
-            theta_path_sgd.append(theta_sgd)  # extra code – to generate the figure
+            theta_path_sgd.append(theta_sgd) 
 
-    # extra code – this section beautifies Figure 4–10
     plt.plot(X, y, ".", color=bleu)
     plt.xlabel("$x_1$")
     plt.ylabel("$y$", rotation=0)
@@ -1894,7 +1895,7 @@ def _(mo):
 
     $$x_1x_2,\ x_1^2x_2,\ x_1x_2^2.$$
 
-    En notant $d$ le degré maximum fixé (option `degree`), et $n$ le nombre de features pré-existantes, un appel à `PolynomialFeatures` crée exactement $\displaystyle \frac{n+d}{n! \mathpunct{} d!}$ features.
+    En notant $d$ le degré maximum fixé (option `degree`), et $n$ le nombre de features pré-existantes, un appel à `PolynomialFeatures` crée exactement $\displaystyle \frac{\left(n+d\right)!}{n! \mathpunct{} d!}$ features.
 
     Attention donc à l'explosion combinatoire du nombre de features, d'autant que celui [intervient au carré dans le coût asymptotique de la SVD](#complexite-svd).
 
@@ -1957,7 +1958,7 @@ def _(
     plt.axis([-3, 3, 0, 10])
     plt.grid(True, alpha=0.3)  # grille atténuée pour ne pas surcharger
     plt.show()
-    return
+    return (make_pipeline,)
 
 
 @app.cell(hide_code=True)
@@ -1965,12 +1966,7 @@ def _(mo):
     mo.md(r"""
     À la vue de ce graphique, le lecteur attentif conclura à l'importance du second degré..
 
-    > Cas extrême du phénomène de Runge : il existe des configurations où l'écart maximal entre la fonction et son polynôme interpolateur augmente indéfiniment avec $n$, degré du polynôme égal au nombre de points d'interpolation. La démonstration ci-dessous présente un exemple d'un tel cas.
-
-    /// details | Cas extrême du phénomène de Runge - démonstration (pour aller plus loin)
-    ///
-
-    [insérer section sur l'intérêt des bases orthogonales]
+    > Cas extrême du phénomène de Runge : il existe même des configurations où l'écart maximal entre la fonction et son polynôme interpolateur augmente indéfiniment avec $n$, degré du polynôme égal au nombre de points d'interpolation.
 
     ---
     ## B. Trouver le bon degré
@@ -1985,7 +1981,6 @@ def _(mo):
     1. Observer la distribution des données
     2. Comparer l'erreur d'entraînement et l'erreur de validation
     3. Utiliser des _learning curves_
-    4. [splines ?]
 
     ---
 
@@ -2059,7 +2054,7 @@ def _(mo):
 
     On appelle parfois **écart de généralisation** la différence entre les deux erreurs.
 
-    ### Visualisation
+    ### Visualisation <a id="visualisation-ecart-generalisation"></a>
 
     La visualisation interactive ci-dessous illustre ce principe.
     """)
@@ -2143,7 +2138,7 @@ def _(bleu, gris, np, overfit_degree_slider, plt, rouge):
     # Écart de généralisation au degré courant
     _axR.plot([_d, _d], [_cur_train, _cur_val], color=gris, lw=6, alpha=0.55, solid_capstyle="round")
     _axR.scatter([_d, _d], [_cur_train, _cur_val], color=[bleu, rouge], s=70, zorder=5, ec="white")
-    _axR.set_xlabel("Degré du polynôme (complexité du modèle)")
+    _axR.set_xlabel("Degré du polynôme")
     _axR.set_ylabel("MSE (échelle log)")
     _axR.set_title(f"Écart de généralisation au degré {_d} : {_cur_val - _cur_train:.3f}")
     _axR.set_xticks(_degrees)
@@ -2161,7 +2156,7 @@ def _(mo):
     - L'écart de généralisation
     - La moyenne des erreurs
 
-    En fixant un degré de 1 ou de 2, notre modèle ne réalise ni sur-apprentissage ni sous-apprentissage, mais ses prédictions sont fondamentalement assez **mauvaises**. On considère donc ici que la régression polynomiale de degré 3 est la meilleure, bien que son écart de généralisation ne soit pas le plus petit de tous.
+    En fixant un degré de 1 ou de 2, notre modèle ne réalise ni sur-apprentissage ni sous-apprentissage, mais ses prédictions sont comparativement assez **mauvaises**. On considère donc ici que la régression polynomiale de degré 3 est la meilleure, bien que son écart de généralisation ne soit pas le plus petit de tous.
 
     ### Implémentation
 
@@ -2188,57 +2183,348 @@ def _(X_polreg_raw, np, poly_reg, y_polreg):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    ### Formalisation mathématique des erreurs
+
+    Pour mieux comprendre la structure mathématique des notions présentées dans la section suivante, les _learning curves_, il peut être utile de formaliser les concepts que l'on a vus jusqu'ici.
+
+    /// details | Formalisation mathématique des erreurs - (pour aller plus loin)
+
+    Reprenons le cadre de génération utilisé depuis le début du chapitre : le label s'écrit comme une fonction **déterministe** des prédicteurs, corrompue par un bruit additif.
+
+    $$y = f(\mathbf{x}) + \epsilon, \qquad \mathbb{E}[\epsilon] = 0, \quad \mathbb{V}(\epsilon) = \sigma^2$$
+
+    La fonction $f$ est la **structure sous-jacente** que l'on cherche à approcher (la _fonction réelle_ qui génère les distributions de points) ; $\epsilon$ est un bruit aléatoire de moyenne nulle.
+
+    L'entraînement, lui, produit un modèle à partir d'un training set. Mais ce jeu n'est qu'un **tirage** parmi tous les training sets possibles : avec d'autres données, on aurait obtenu d'autres paramètres $\hat{\boldsymbol{\theta}}$, donc un autre modèle. Par conséquent la** fonction hypothèse** apprise est **aléatoire** ; pour alléger, on note $\hat{f}(\mathbf{x}_0)$ sa prédiction en une instance $\mathbf{x}_0$ fixée :
+
+    $$\hat{f}(\mathbf{x}_0) := h_{\hat{\boldsymbol{\theta}}}(\mathbf{x}_0)$$
+
+    > Puisque $\hat{f}$ est fonction de plusieurs variables (le training set $\mathcal{D}$, l'instance $\mathbf{x}_0$ en laquelle est elle évaluée, etc.), on notera en indice la grandeur sur laquelle on moyenne dans l'expression de l'espérance. Par exemple, $\mathbb{E}_{\mathcal{D}}\big[\hat{f}\big]$ est la fonction moyenne obtenue à partir de tous les training sets possibles.
+
+    #### Erreur de généralisation
+
+    Pour un modèle donné déjà entraîné, on définit l'**erreur de généralisation** comme la moyenne des écarts au carrés entre $y$ et $\hat{f}$ sur l'ensemble des instances de l'univers (sauf celles utilisées pendant l'entraînement). Elle quantifie l'exacte capacité de généralisation du modèle (d'où son nom).
+
+    $$R(\hat f) = \mathbb{E}_{(\mathbf{x},y)}\big[(y - \hat f(\mathbf{x}))^2\big]$$
+
+    C'est un idéal théorique, il faudrait toute la distribution pour la calculer.
+
+    #### Erreur de validation
+
+    Cette erreur est simplement l'estimateur empirique de $R(\hat f)$ sur un échantillon $V$ de $p$ instances inédites (i.e. issues du test set).
+
+    $${\widehat R_V(\hat f)}_1 = \frac{1}{p}\sum_{j=1}^{p}\big(y^{(j)} - \hat f(\mathbf{x}^{(j)})\big)^2$$
+
+    NB : On peut prouver facilement que $\mathbb{E}_{V} \big[\widehat R_V(\hat f)- R(\hat f)\big]=0$ c'est-à-dire que cet estimateur est **sans biais**.
+
+    Rigoureusement, cette mesure correspond à la RMSE que l'on calcule sur le test set une fois notre modèle définitivement fixé. Pour avoir une idée de la capacité de généralisation sans induire un _data snooping bias_, on l'approche par validation croisée avec `cross_validate` en faisant la moyenne des erreurs sur les différents folds.
+
+    #### Erreur d'entraînement
+
+    L'erreur d'entraînement ${\widehat R_V(\hat f)}_2$ est un estimateur **biaisé** de $R(\hat f)$.
+
+    $${\widehat R_V(\hat f)}_2 = \frac{1}{p}\sum_{j=1}^{p}\big(y^{(j)} - \hat f(\mathbf{x}^{(j)})\big)^2$$
+
+    Il ressemble à l'erreur de validation, mais son estimation est réalisée sur un échantillon $V'$ d'instances **non inédites**, issues du train set.
+
+    #### Écart de généralisation
+
+    C'est la différence entre l'erreur de validation et l'erreur d'entraînement. Son nom est trompeur, attention à ne pas le confondre avec l'_erreur_ de généralisation.
+
+    ///
+
     ---
 
     ## E. Learning curves
 
-    Si l'écart de généralisation constitue déjà un bon indicateur, il peut être plus instructif d'étudier, pour un modèle donné, son évolution au cours de l'entraînement du modèle.
+    Si l'écart de généralisation constitue déjà un bon indicateur, il peut être plus instructif d'étudier, pour un modèle donné, son évolution au cours de son entraînement.
 
     Concrètement, il s'agit de mesurer l'erreur d'entraînement et l'erreur de validation à chaque itération de `partial_fit()`, puis de tracer cette évolution. Les deux courbes que l'on obtient sont appelées **learning curves** (courbes d'entraînement).
 
     > Si le modèle ne supporte pas l'apprentissage incréméntal - i.e. ne dispose pas nativement de la méthode `partial_fit()` - , il suffit de le ré-entraîner complètement sur des sous-ensemble du training set de tailles croissantes.
 
-    ### Implémentation Scikit
+    ### Implémentation Scikit <a id="implementation-scikit"></a>
 
-    Scikit-Learn facilite à nouveau l'implémentation avec la fonction `learning_curve()`.
-
-    La fonction itère sur différentes tailles de training set, et renvoie trois tableaux dont les éléments correspondent chacune à une itération.
+    Scikit-Learn facilite l'implémentation avec `learning_curve()` : la fonction itère sur différentes tailles de training set, et renvoie trois tableaux dont les éléments correspondent chacun à une itération.
     1. `train_sizes_abs` : les tailles successives des training subsets
     2. `train_scores` : l'erreur d'entraînement sur le subset courant
     3. `test_scores` : les $k$ erreurs de validation sur les $k$ splits du subset courant
 
     > L'option `exploit_incremental_learning=True` permet d'entraîner les modèles incrémentalement.
+
+    On reprend nos données générées avec une équation quadratique, on entraîne deux modèles (une régression linéaire, une régression polynomiale de degré 10) et on trace les learnings curves associées. On s'attend à observer pour les deux schémas, respectivement de l'underfitting et de l'overfitting.
     """)
     return
 
 
 @app.cell
-def _(LinearRegression, X_polreg_raw, np, y_polreg):
+def _(
+    LinearRegression,
+    PolynomialFeatures,
+    X_polreg_raw,
+    make_pipeline,
+    np,
+    y_polreg,
+):
     from sklearn.model_selection import learning_curve
 
-    train_sizes, train_scores, valid_scores = learning_curve(
-        LinearRegression(), X_polreg_raw, y_polreg, train_sizes=np.linspace(0.01, 1.0, 40), cv=5,
+    # Régression polynomiale de degré 1 (droite affine)
+    uf_polynomial_regression = make_pipeline(PolynomialFeatures(degree=1, include_bias=False), LinearRegression())
+
+    # Régression polynomiale de degré 10 
+    of_polynomial_regression = make_pipeline(PolynomialFeatures(degree=10, include_bias=False), LinearRegression())
+
+
+    uf_train_sizes, uf_train_scores, uf_valid_scores = learning_curve(
+        uf_polynomial_regression, X_polreg_raw, y_polreg, train_sizes=np.linspace(0.01, 1.0, 40), cv=5,
         scoring="neg_root_mean_squared_error")
 
-    train_errors = -train_scores.mean(axis=1)
-    valid_errors = -valid_scores.mean(axis=1)
-    return train_errors, train_sizes, valid_errors
+    of_train_sizes, of_train_scores, of_valid_scores = learning_curve(
+        of_polynomial_regression, X_polreg_raw, y_polreg, train_sizes=np.linspace(0.01, 1.0, 40), cv=5,
+        scoring="neg_root_mean_squared_error")
+
+
+    uf_train_errors = -uf_train_scores.mean(axis=1)
+    uf_valid_errors = -uf_valid_scores.mean(axis=1)
+
+    of_train_errors = -of_train_scores.mean(axis=1)
+    of_valid_errors = -of_valid_scores.mean(axis=1)
+    return (
+        of_train_errors,
+        of_train_sizes,
+        of_valid_errors,
+        uf_train_errors,
+        uf_train_sizes,
+        uf_valid_errors,
+    )
 
 
 @app.cell(hide_code=True)
-def _(bleu, plt, rouge, train_errors, train_sizes, valid_errors):
-    plt.figure(figsize=(5, 3))  # extra code – not needed, just formatting
-    plt.plot(train_sizes, train_errors, "-+",color=rouge, linewidth=2, label="entraînement")
-    plt.plot(train_sizes, valid_errors, "-",color=bleu, linewidth=3, label="validation")
+def _(
+    bleu,
+    of_train_errors,
+    of_train_sizes,
+    of_valid_errors,
+    plt,
+    rouge,
+    uf_train_errors,
+    uf_train_sizes,
+    uf_valid_errors,
+):
+    _, _axes = plt.subplots(1, 2, figsize=(10, 4), sharey=True)
 
-    # extra code – beautifies Figure 4–15
-    plt.xlabel("Taille du training set")
-    plt.ylabel("RMSE")
-    plt.grid()
-    plt.legend(loc="upper right")
-    plt.axis([0, 160, 0, 2.5])
+    _axes[0].plot(uf_train_sizes, uf_train_errors, "-+", color=rouge, linewidth=2, label="entraînement")
+    _axes[0].plot(uf_train_sizes, uf_valid_errors, "-", color=bleu, linewidth=3, label="validation")
+    _axes[0].legend(loc="upper right")
+    _axes[0].set_xlabel("Taille du training set")
+    _axes[0].set_ylabel("RMSE")
+    _axes[0].grid()
+    _axes[0].axis([0, 160, 0, 2.5])
+    _axes[0].set_title("Learning curve : plot n°1") # Tu peux changer ce titre
 
+    _axes[1].plot(of_train_sizes, of_train_errors, "-+", color=rouge, linewidth=2, label="entraînement")
+    _axes[1].plot(of_train_sizes, of_valid_errors, "-", color=bleu, linewidth=3, label="validation")
+    _axes[1].legend(loc="upper right")
+    _axes[1].set_xlabel("Taille du training set")
+    _axes[1].grid()
+    _axes[1].axis([0, 160, 0, 2.5])
+    _axes[1].set_title("Learning curve : plot n°2")
+
+    plt.tight_layout()
     plt.show()
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Après avoir introduit quelques notions utiles, la section [Interpréter les learning curves](#interpreter-learning-curve) présente des critères pratiques pour analyser ces courbes.
+
+    ---
+
+    ## F. La décomposition biais-variance-erreur irréductible
+
+    Un examen approfondi de l'erreur de généralisation peut nous permettre de mieux comprendre ce qui affecte la capacité de généralisation du modèle. En l'espèce, on se propose de montrer que cette erreur est la somme d'un terme de **biais**, d'un terme de **variance** et d'une **erreur irréductible**.
+
+    /// details | La décomposition biais-variance-erreur irréductible (pour aller plus loin)
+
+    On rappelle que la variable cible s'écrit comme une fonction $f$ des prédicteurs, que notre modèle va tenter d'approcher par une fonction $\hat{f}$.
+
+    $$y = f(\mathbf{x}) + \epsilon$$
+
+    Lors de l'entraînement, on produit un modèle à partir d'un training set. Si on considère les choix de modélisation **fixés**, la fonction $\hat{f}$ apprise est entièrement déterminée par le jeu d'entraînement. Et puisque ce jeu n'est qu'un **tirage** parmi tous les training sets possibles, le modèle est lui-même le fruit d'un tirage, dont on peut étudier les **propriétés statistiques** : $\mathbb{V}_{\mathcal{D}}\big[\hat{f} \big]$, $\mathbb{E}_{\mathcal{D}}\big[\hat{f} \big]$, etc..
+
+    Formellement, on note
+    $$\hat f = \mathcal{A}(\mathcal{D})$$
+
+    où $\mathcal{A}$ est l'**algorithme d'apprentissage**, qui empaquette tous les choix de modélisation : la classe d'hypothèses $\mathcal{H}$ (linéaire ? polynomiale de degré $d$ ? SVM ?), la standardisation, la fonction de coût, la régularisation, etc..
+
+    L'erreur de généralisation $R(\hat f)$ quantifiant l'exacte capacité de généralisation du modèle **pour un training set donné**, on va étudier son espérance pour tous les tirages possibles. Cela revient à étudier $R(\mathcal{A})$ :
+
+    $$\mathbb{E}_{\mathcal{D}}\big[R(\hat f)\big] =\mathbb{E}_{\mathcal{D}}\,\mathbb{E}_{(\mathbf{x}, y)}\big[(y - \hat f(\mathbf{x}))^2\big] $$
+
+    <a id="etape-demo"></a> Soit $\mathcal P$ la distribution du test set, tirer $(\mathbf{x},y)\sim\mathcal P$ revient à tirer $\mathbf{x}_0 \sim \mathcal P_{\mathbf x}$ et $\epsilon \sim \mathcal P_{\mathbf \epsilon}$ et à fixer ensuite $y = f(\mathbf{x}_0)+\epsilon$. D'autre part, l'intégrande étant positive on peut permuter les espérances en vertu du théorème de Fubini :
+
+    $$\underbrace{\mathbb{E}_{\mathcal{D}}\,\mathbb{E}_{(\mathbf{x}, y)}\big[(y - \hat f(\mathbf{x}))^2\big]}_{\text{erreur de généralisation, moyennée sur } \mathcal{D}} = \mathbb{E}_{\mathbf{x_0}}\Big[\,\underbrace{\mathbb{E}_{\mathcal{D},\,\epsilon}\big[(y - \hat f(\mathbf{x}_0))^2\big]}_{\text{objet de la démonstration}}\,\Big]$$
+
+    Ainsi $\mathbb{E}_{\mathcal{D},\,\epsilon}\big[(y - \hat f(\mathbf{x}_0))^2\big]$ mesure l'erreur quadratique en $\mathbf{x}_0$, moyennée à la fois sur le bruit $\epsilon$ de l'instance test et sur le tirage du training set. En notant $\bar{f}(\mathbf{x}_0) = \mathbb{E}[\hat{f}(\mathbf{x}_0)]$ la prédiction du **modèle moyen** (celui qu'on obtiendrait en moyennant une infinité de modèles entraînés), cette erreur se décompose en **trois termes** :
+
+    $$\mathbb{E}_{\mathcal{D},\,\epsilon}\big[(y - \hat f(\mathbf{x}_0))^2\big] = \underbrace{\big(f(\mathbf{x}_0) - \bar{f}(\mathbf{x}_0)\big)^2}_{\text{biais}^2} \;+\; \underbrace{\mathbb{E}\!\left[\big(\hat{f}(\mathbf{x}_0) - \bar{f}(\mathbf{x}_0)\big)^2\right]}_{\text{variance}} \;+\; \underbrace{\sigma^2}_{\text{erreur irréductible}}$$
+
+    /// details | Décomposition biais-variance - démonstration (pour aller _encore_ loin)
+
+    **Étape 0 - contexte et notations**
+
+    On suppose que le bruit $\epsilon$ de l'instance test est :
+    1. **indépendant** du training set $\mathcal{D}$
+    2. **centré** ($\mathbb{E}[\epsilon]=0$)
+    3. de variance $\sigma^2 = \mathbb{V}(\epsilon)$.
+
+    Pour alléger, on omet la dépendance en $\mathbf{x}_0$ et on note :
+
+    $$f = f(\mathbf{x}_0), \quad \hat f = \hat f(\mathbf{x}_0), \quad \bar f = \bar f(\mathbf{x}_0) = \mathbb{E}_{\mathcal{D}}[\hat f]$$
+
+    On rappelle que $y = f + \epsilon$ et que notre objectif est de décomposer $\mathbb{E}_{\mathcal{D},\,\epsilon}\big[(y - \hat f)^2\big]$.
+
+    **Étape 1 — isoler le bruit.** En écrivant $y - \hat f = (f - \hat f) + \epsilon$ et en développant le carré :
+
+    $$(y - \hat f)^2 = (f - \hat f)^2 + 2\,\epsilon\,(f - \hat f) + \epsilon^2$$
+
+    On prend l'espérance sur $\mathcal{D}$ et $\epsilon$. Le terme croisé se **factorise** car $\epsilon \perp \mathcal{D}$, puis **s'annule** car $\mathbb{E}[\epsilon]=0$ :
+
+    $$\mathbb{E}_{\mathcal{D},\epsilon}\big[2\,\epsilon\,(f - \hat f)\big] = 2\,\underbrace{\mathbb{E}[\epsilon]}_{=\,0}\;\mathbb{E}_{\mathcal{D}}\big[f - \hat f\big] = 0$$
+
+    La quantité $f - \hat f$ ne dépendant que de $\mathcal{D}$, et $\mathbb{E}_\epsilon[\epsilon^2] = \mathbb{V}(\epsilon) = \sigma^2$ (le bruit est centré), il reste :
+
+    $$\mathbb{E}_{\mathcal{D},\epsilon}\big[(y - \hat f)^2\big] = \underbrace{\mathbb{E}_{\mathcal{D}}\big[(f - \hat f)^2\big]}_{\text{erreur d'estimation}} + \;\sigma^2$$
+
+    **Étape 2 — faire apparaître le modèle moyen.** On introduit $\bar f$ dans le premier terme via $f - \hat f = (f - \bar f) + (\bar f - \hat f)$ :
+
+    $$(f - \hat f)^2 = (f - \bar f)^2 + 2\,(f - \bar f)(\bar f - \hat f) + (\bar f - \hat f)^2$$
+
+    On prend l'espérance sur $\mathcal{D}$. De nouveau le terme croisé s'annule : $f - \bar f$ est une constante indépendante de $\mathcal{D}$ ($f$ est le modèle théorique et $\bar f$ est déjà moyenné sur $\mathcal{D}$), et $\mathbb{E}_{\mathcal{D}}[\bar f - \hat f] = \bar f - \mathbb{E}_{\mathcal{D}}[\hat f] = \bar f - \bar f = 0$ par **définition** de $\bar f$ :
+
+    $$\mathbb{E}_{\mathcal{D}}\big[2\,(f - \bar f)(\bar f - \hat f)\big] = 2\,(f - \bar f)\,\underbrace{\mathbb{E}_{\mathcal{D}}\big[\bar f - \hat f\big]}_{=\,0} = 0$$
+
+    Il vient :
+
+    $$\mathbb{E}_{\mathcal{D}}\big[(f - \hat f)^2\big] = \underbrace{(f - \bar f)^2}_{\text{biais}^2} + \underbrace{\mathbb{E}_{\mathcal{D}}\big[(\hat f - \bar f)^2\big]}_{\text{variance}}$$
+
+    On reconnaît la formule de la variance $\mathbb{V}_{\mathcal{D}}\big(\hat f(\mathbf{x}_0)\big) = \mathbb{E}_{\mathcal{D}}\big[(\hat f - \bar f)^2\big]$, puisque $\bar f = \mathbb{E}_{\mathcal{D}}[\hat f]$.
+
+    **Conclusion.** En réinjectant ce résultat dans celui de l'étape 1 :
+
+    $$\mathbb{E}_{\mathcal{D},\,\epsilon}\big[(y - \hat f(\mathbf{x}_0))^2\big] = \underbrace{\big(f(\mathbf{x}_0) - \bar f(\mathbf{x}_0)\big)^2}_{\text{biais}^2} + \underbrace{\mathbb{E}_{\mathcal{D}}\big[(\hat f(\mathbf{x}_0) - \bar f(\mathbf{x}_0))^2\big]}_{\text{variance}} + \underbrace{\sigma^2}_{\text{erreur irréductible}}$$
+
+    ///
+
+    Par linéarité de l'espérance, c'est l'erreur de généralisation elle-même qui se décompose en **trois contributions**.
+
+    ///
+
+    ### Analyse des 3 constributions
+
+    1. L'**erreur irréductible** $\sigma^2=\mathbb{V}(\epsilon)$ porte bien son nom : elle ne dépend ni du modèle ni du training set, donc même le modèle parfait $\hat{f} = f$ la subirait, puisqu'aucun apprentissage ne peut deviner le bruit $\epsilon$.
+    2. Le **biais** $\big(f - \bar{f}\big)^2$ mesure l'écart entre la structure réelle $f$ et le modèle moyen $\bar{f}$. Il est élevé quand la famille de modèles est **trop rigide** pour épouser $f$. C'est la signature de l'**underfitting**.
+    3. La **variance** $\mathbb{V}(\hat{f})$ mesure la sensibilité du modèle au training set : de combien $\hat{f}$ fluctue-t-il lorsqu'on change les données ? Elle est élevée quand le modèle est **trop flexible** et épouse le bruit propre à chaque jeu. C'est la signature de l'**overfitting**.
+
+    C'est ce vocabulaire, **biais élevé** pour l'underfitting, **variance élevée** pour l'overfitting, que l'on mobilise pour lire les learning curves dans la section suivante.
+
+    ### Le compromis biais-variance
+
+    On parle souvent de compromis biais-variance (il y a même une [page Wikipédia](https://fr.wikipedia.org/wiki/Dilemme_biais-variance) dédiée), mais même en étudiant la démonstration précédente et l'expression des trois contributions, il n'est pas trivial d'établir l'**antagonisme** entre ces termes.
+
+    En fait, on peut démontrer que si l'on évalue ces deux composantes le long d'une famille de complexité croissante, **leurs dérivées par rapport à la complexité sont de signes opposés** (le biais décroît, la variance croît). Cet antagonisme n'a donc de sens que si l'on considère biais et variance comme **fonctions de la complexité** du modèle.
+
+    L'essentiel est de garder à l'esprit l'intuition suivante : complexifier le modèle (augmenter le degré, par exemple) réduit le biais mais gonfle la variance, et inversement. On ne peut annuler les deux simultanément, et l'erreur totale est minimale pour une complexité **intermédiaire** ; exactement le _meilleur compromis_ que repérait plus haut [la courbe d'erreur de validation](#visualisation-ecart-generalisation).
+
+    > Tout ceci à **taille de training set fixée**. Faire varier cette taille, c'est précisément ce que tracent les learning curves : biais et variance évoluent avec le nombre d'instances, ce qui explique le mouvement des deux courbes.
+
+    ### Interpréter les learning curves <a id="interpreter-learning-curve"></a>
+
+    Pour faire le lien entre nos 3 contributions et les learnings curves, il faut s'intéresser à la façon dont ces termes se comportent au fur et à mesure que le training set grossit (i.e. que $m$ grossit) :
+
+    1. **$\sigma^2$ : plat.** Le bruit ne dépend ni du modèle ni des données.
+    2. **biais : essentiellement plat.** Il est fixé par la _famille_ de modèles, pas par la quantité de données. Quand $m \to \infty$, le modèle moyen $\bar f$ tend vers le meilleur modèle de la classe $f^\star$, donc le biais tend vers $f - f^\star - \text{constante}$. La constante est éventuellement nulle si la classe peut représenter $f$.
+    3. **variance : décroissante et tend vers $0$**. Plus de données $\Rightarrow$ $\hat f$ se stabilise d'un training set à l'autre $\Rightarrow$ les fluctuations s'éteignent.
+
+    En conséquence, la hauteur du plateau où se rejoignent les courbes correspond à la somme du biais et du bruit. La variance s'observe sur l'écart entre les courbes.
+
+    /// details | Interprétation graphique - démonstration (pour aller _vraiment_ plus loin)
+
+    On se propose de démontrer ici le lien entre les composantes de l'erreur de généralisation et l'interprétation des learnings curves : « _la hauteur du plateau où se rejoignent les courbes correspond à la somme du biais et du bruit. La variance s'observe sur l'écart entre les courbes _» .
+
+    **Rappels :**
+
+    - Erreur de généralisation : $R(\hat f) = \mathbb{E}_{(\mathbf{x},y)}\big[(y - \hat f(\mathbf{x}))^2\big]$.
+
+    - Erreur de validation : ${\widehat R_{V_{\text{test}}}(\hat f)}_1 = \frac{1}{p}\sum_{j=1}^{p}\big(y^{(j)} - \hat f(\mathbf{x}^{(j)})\big)^2$ sans biais donc $\mathbb{E}_V\big[{\widehat R_{V_{\text{test}}}(\hat f)}_1\big] = R(\hat f)$
+
+    - Erreur d'entraînement : ${\widehat R_{V_{\text{train}}}(\hat f)}_2 = \frac{1}{p}\sum_{j=1}^{p}\big(y^{(j)} - \hat f(\mathbf{x}^{(j)})\big)^2$
+
+    **Notations :**
+
+    - On note $\hat f_i := \hat f(\mathbf{x}^{(i)})$ et $f_i := f(\mathbf{x}^{(i)})$ , où $\mathbf{x}^{(i)}$ est l'instance d'indice $i$ du test set.
+
+    **Objectif :**
+
+    - On étudie l'espérance des deux courbes sur le tirage du training set $\mathcal{D}$, à taille $m$ fixée.
+
+    #### Courbe de l'erreur de validation
+
+    En moyennant sur $\mathcal{D}$ et $V_{\text{test}}$ et en réinjectant la décomposition biais-variance (intégrée sur $\mathbf{x}_0$, comme on l'a fait [ici](#etape-demo)) :
+
+    $$\mathbb{E}_{\mathcal{D},V}\big[{\widehat R_V(\hat f)}_1\big] = \mathbb{E}_{\mathcal{D}}\big[R(\hat f)\big] = \mathbb{E}_{\mathbf{x}_0}\Big[\,\underbrace{(f - \bar f)^2}_{\text{biais}^2} + \underbrace{\mathbb{V}_{\mathcal{D}}(\hat f)}_{\text{variance}}\,\Big] + \sigma^2$$
+
+    On peut montrer grâce au théorème central limite que la matrice de covariance des paramètres estimés $\hat{\theta}$ est proportionnelle à $\frac{1}{m}$. Par conséquent, quand $m \to \infty$, la variance tend vers $0$ : **la courbe de validation tend vers le plateau $\text{biais}^2 + \sigma^2$**.
+
+    #### Courbe de l'erreur d'entraînement
+
+    On prend pour $V'$ le training set lui-même ($p = m$). Problème : chaque $(\mathbf{x}^{(i)}, y^{(i)})$ a servi à fabriquer $\hat f$, donc $\hat f_i$ n'est plus indépendant de $y^{(i)}$ ; le terme croisé qui s'annulait à l'étape 1 de la décomposition ne s'annule plus.
+
+    Pour **mesurer cet écart**, on introduit en chaque point la quantité ${y'}^{(i)} = f_i + {\epsilon'}^{(i)}$, de même loi mais avec ${\epsilon'}^{(i)} \perp \mathcal{D}$. On appelle **optimisme** l'écart en espérance entre l'erreur sur ces quantités et l'erreur d'entraînement :
+
+    $$\text{optimisme}(m) = \mathbb{E}_{\mathcal{D},\,\epsilon'}\Big[\tfrac{1}{m}\sum_{i=1}^{m} ({y'}^{(i)} - \hat f_i)^2\Big] - \mathbb{E}_{\mathcal{D}}\big[{\widehat R_V(\hat f)}_2\big]$$
+
+    En développant les deux carrés, les termes $\mathbb{E}[{y'}^2] = \mathbb{E}[y^2]$ et $\hat f_i^2$ se compensent ; il reste, en chaque point, $-2\,\mathbb{E}[\hat f_i\,{y'}^{(i)}] + 2\,\mathbb{E}[\hat f_i\,y^{(i)}]$. Or ${y'}^{(i)} \perp \hat f_i$ donne $\mathbb{E}[\hat f_i\,{y'}^{(i)}] = f_i\,\mathbb{E}[\hat f_i]$, tandis que $\mathbb{E}[\hat f_i\,y^{(i)}] = \mathrm{Cov}(\hat f_i, y^{(i)}) + f_i\,\mathbb{E}[\hat f_i]$. Les termes en $f_i\,\mathbb{E}[\hat f_i]$ se télescopent :
+
+    $$\text{optimisme}(m) = \frac{2}{m}\sum_{i=1}^{m} \mathrm{Cov}\big(\hat f_i,\, y^{(i)}\big) \;\ge\; 0$$
+
+    Cette covariance mesure de combien la prédiction $\hat f_i$ suit son propre label : c'est la signature de la **complexité** du modèle, qui alimente la variance.
+
+    L'identité ci-dessus se réécrit, le membre de gauche partageant **le même plateau** que la validation (même décomposition biais-variance, aux points $\mathbf{x}^{(i)}$) :
+
+    $$ \mathbb{E}_{\mathcal{D}}\big[\widehat R_V(\hat f)_2\big] + \underbrace{\text{optimisme}(m)\vphantom{\mathbb{E}_{\mathcal{D},\,\epsilon'}\Big[\tfrac{1}{m}\sum_{i=1}^{m}({y'}^{(i)}-\hat f_i)^2\Big]}}_{\xrightarrow{\,m\to\infty\,}0} = \underbrace{\mathbb{E}_{\mathcal{D},\,\epsilon'}\Big[\tfrac{1}{m}\sum_{i=1}^{m}({y'}^{(i)}-\hat f_i)^2\Big]}_{\xrightarrow{\,m\to\infty\,}\text{biais}^2+\sigma^2} $$
+
+    #### Conclusion
+
+    Les deux courbes rejoignent donc théoriquement le même plateau $\text{biais}^2 + \sigma^2$ (variance et optimisme tendent vers $0$) : c'est **la hauteur du plateau qui donne biais + bruit**. D'autre part, **l'écart résiduel à $m$ fini est gouverné par la complexité du modèle (optimisme), donc par la variance**. On retrouve exactement les deux règles de lecture.
+
+    ///
+
+    En pratique, on se contente de retenir les règles suivantes, qui permettent généralement d'évaluer correctement la capacité de généralisation du modèle, indépendamment de sa nature (régression linéaire, polynomiale, SVM, forêt aléatoire etc..).
+
+    - **Underfitting** (biais elevé $\Rightarrow$ plateau élevé et variance faible (donc faible écart))
+      - Les deux courbes convergent vers un plateau associé à une erreur élevée
+      - Faible écart asymptotique
+
+    - **Overfitting** (variance élevée $\Rightarrow$ écart marqué et biais faible (plateau bas))
+      - Erreur d'entraînement basse
+      - Écart asymptotique important
+
+    - **Bon ajustement**
+      - Faible erreur
+      - Faible écart
+
+    - **Pas assez de données**
+      - Les deux courbes sont encore en mouvement au bord droit
+
+    > Certains aspects de ces courbes restent largement imputables à la nature du modèle, notamment le fait que l'erreur d'entraînement augmente / reste proche de 0, ou que l'écart se résorbe / persiste avec les données.
+
+    On en déduit, [comme prévu](#implementation-scikit) :
+    1. _Learning curve : plot n°1_ exhibe un phénomène d'underfitting (plateau + faible écart)
+    2. _Learning curve : plot n°2_ illustre un phénomène d'overfitting (erreur faible + écart marqué)
+    """)
     return
 
 
