@@ -184,7 +184,7 @@ def _(
     # Prédictions du modèle courant et erreur quadratique moyenne
     _y_pred = _t0 + _t1 * x_2d
     _mse = float(np.mean((y_2d - _y_pred) ** 2))
-    _fig, _ax = plt.subplots(figsize=(5, 4))
+    _fig, _ax = plt.subplots(figsize=(6, 4))
     _ax.scatter(x_2d, y_2d, color=bleu, s=35, alpha=0.8, label="Données", zorder=3)
 
     # Segments verticaux entre chaque point et la droite
@@ -257,7 +257,7 @@ def _(
     _y_pred = _t0 + _t1 * x1_3d + _t2 * x2_3d
     _mse = float(np.mean((y_3d - _y_pred) ** 2))
 
-    _fig = plt.figure(figsize=(5, 4))
+    _fig = plt.figure(figsize=(6, 4))
     _ax = _fig.add_subplot(111, projection="3d")
 
     # Le plan du modèle, tracé comme une surface sur la grille des prédicteurs.
@@ -354,7 +354,7 @@ def _(mo):
 
 @app.cell(hide_code=True)
 def _(X_reg, bleu, plt, y_reg):
-    plt.figure(figsize=(3, 2))
+    plt.figure(figsize=(6, 4))
     plt.plot(X_reg, y_reg, ".", color=bleu)
     plt.xlabel("$x_1$")
     plt.ylabel("$y$", rotation=0)
@@ -430,7 +430,7 @@ def _(
     vert,
     y_reg,
 ):
-    fig, (ax_theta, ax_data) = plt.subplots(1, 2, figsize=(10, 4))
+    fig, (ax_theta, ax_data) = plt.subplots(1, 2, figsize=(10, 5))
 
     # Figure de gauche
 
@@ -1123,7 +1123,7 @@ def _(X, X_b, X_new, X_new_b, bleu, eta_slider, np, plt, y):
     def plot_gradient_descent(theta, eta, n_epochs=1000, n_shown=20):
         _m = len(X_b)
         _theta = theta.copy()                       # ne pas écraser l'origine partagée
-        _fig, _ax = plt.subplots(figsize=(5, 3))
+        _fig, _ax = plt.subplots(figsize=(6, 4))
         _ax.plot(X, y, ".", color=bleu)
         for _epoch in range(n_epochs):
             if _epoch < n_shown:
@@ -1186,7 +1186,7 @@ def _(X_b, gd_opt, np, y):
 
 @app.cell(hide_code=True)
 def _(epochs, etas, i, plt, rouge, vert):
-    _fig, _ax = plt.subplots(figsize=(5, 3))
+    _fig, _ax = plt.subplots(figsize=(6, 4))
     _ax.plot(etas, epochs, color=rouge, lw=2)
     _ax.scatter(etas[i], epochs[i], color=vert, s=70, zorder=5,
                 label=f"optimum ($\\eta$={etas[i]:.3f})")
@@ -1760,7 +1760,7 @@ def _(np):
 
 @app.cell(hide_code=True)
 def _(X_polreg_raw, bleu, plt, y_polreg):
-    plt.figure(figsize=(4, 2))
+    plt.figure(figsize=(6, 4))
     plt.plot(X_polreg_raw, y_polreg, ".",color=bleu)
     plt.title("Visualisation du jeu de données")
     plt.xlabel("$x_1$")
@@ -1868,7 +1868,7 @@ def _(np, poly_reg):
 
 @app.cell(hide_code=True)
 def _(X_polreg_new, X_polreg_raw, bleu, orange, plt, y_polreg, y_polreg_new):
-    plt.figure(figsize=(4, 2))
+    plt.figure(figsize=(6, 4))
     plt.plot(X_polreg_raw, y_polreg, ".",color=bleu)
     plt.plot(X_polreg_new, y_polreg_new, "-", color=orange, linewidth=2, label="Predictions")
     plt.xlabel("$x_1$")
@@ -2010,7 +2010,7 @@ def _(np, plt, vert):
 
     _n_cols = 3
     _n_lignes = 2
-    _fig, _axes = plt.subplots(_n_lignes, _n_cols, figsize=(15, 8))
+    _fig, _axes = plt.subplots(_n_lignes, _n_cols, figsize=(15, 9))
     _axes = _axes.flatten()
 
     for _i, (_titre, _coeffs) in enumerate(_polynomes.items()):
@@ -2422,7 +2422,7 @@ def _(mo):
 
     ///
 
-    ### Analyse des 3 constributions
+    ### Analyse des 3 contributions
 
     1. L'**erreur irréductible** $\sigma^2=\mathbb{V}(\epsilon)$ porte bien son nom : elle ne dépend ni du modèle ni du training set, donc même le modèle parfait $\hat{f} = f$ la subirait, puisqu'aucun apprentissage ne peut deviner le bruit $\epsilon$.
     2. Le **biais** $\big(f - \bar{f}\big)^2$ mesure l'écart entre la structure réelle $f$ et le modèle moyen $\bar{f}$. Il est élevé quand la famille de modèles est **trop rigide** pour épouser $f$. C'est la signature de l'**underfitting**.
@@ -2430,13 +2430,204 @@ def _(mo):
 
     C'est ce vocabulaire, **biais élevé** pour l'underfitting, **variance élevée** pour l'overfitting, que l'on mobilise pour lire les learning curves dans la section suivante.
 
+    ### Visualisation
+
+    La décomposition précédente est un énoncé sur le **tirage du training set** $\mathcal{D}$ : elle moyenne l'erreur sur tous les jeux d'entraînement possibles. La visualisation suivante est générée en tirant $K$ training sets issus du même $f+\epsilon$ et en ajustant sur chacun un polynôme dont on règle le degré (la **complexité**).
+
+    Ce graphique nourrit l'intuition de compréhension deux objets : le **modèle moyen** $\bar f = \mathbb{E}_{\mathcal{D}}[\hat f]$ (« celui qu'on obtiendrait en moyennant une infinité de modèles ») et la **variance** comprise comme *dispersion de $\hat f$ d'un tirage à l'autre*.
+
+    Quelques précisions sur ces trois graphes :
+
+    1. **Graphe 1**, haut-gauche. Le faisceau orange réunit les $K$ modèles $\hat f$ ; la courbe rouge est le modèle moyen $\bar f$, la verte la vraie fonction $f$, la bande grise le bruit $\pm\sigma$. En l'abscisse $x_0$, le **segment noir mesure le biais $f(x_0)-\bar f(x_0)$ : l'écart entre la vraie fonction et le modèle moyen**.
+
+    2. **Graphe 2**, haut-droit. Chaque point violet est **dispersion $(\hat f_i - \bar f)^2$** d'un des $K$ modèles ; le losange orange est leur moyenne - c'est précisément la **variance**. La courbe se trace en fonction du degré : on voit la variance augmenter à mesure que les modèles se mettent à « coller » au bruit (overfit).
+
+    3. **Graphe 3**, bas-gauche. Les trois contributions, cette fois **moyennées sur tout le domaine** des $x$, tracées en fonction de la complexité. Ce sont littéralement les composantes de l'**erreur de généralisation**, tracée en violet. Son creux marque la complexité optimale.
+
+    > Dans le panneau de variance (en haut à droite), le losange (la moyenne) est tiré vers le **haut** du nuage : les contributions $(\hat f_i-\bar f)^2$ sont fortement asymétriques, si bien que quelques modèles aberrants suffisent à tirer la variance vers le haut.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(np):
+    bv_true_fn = lambda t: np.sin(2.0 * np.pi * t)
+    bv_sigma = 0.4 
+    bv_m = 20 
+    bv_K = 400
+    bv_degmax = 7
+    bv_degrees = np.arange(1, bv_degmax + 1)
+    bv_grid = np.linspace(0.0, 1.0, 300)
+    bv_test_pts = np.linspace(0.12, 0.88, 80)
+
+    def bv_polyfit(x, y, deg):
+        import warnings
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", np.exceptions.RankWarning)
+            return np.polyfit(x, y, deg)
+
+    _bv_rng = np.random.default_rng(seed=7)
+    bv_datasets = []
+    for _ in range(bv_K):
+        _x = np.sort(_bv_rng.uniform(0.0, 1.0, bv_m))
+        _y = bv_true_fn(_x) + _bv_rng.normal(0.0, bv_sigma, bv_m)
+        bv_datasets.append((_x, _y))
+
+    _bv_ft = bv_true_fn(bv_test_pts)
+    bv_bias2, bv_var = [], []
+    for _d in bv_degrees:
+        _fits = [bv_polyfit(_x, _y, _d) for (_x, _y) in bv_datasets]
+        _P = np.array([np.polyval(_c, bv_test_pts) for _c in _fits])   # K x len(test_pts)
+        _P = np.where(np.isfinite(_P), _P, np.nan)
+        _bar = np.nanmean(_P, axis=0)
+        bv_bias2.append(np.nanmean((_bar - _bv_ft) ** 2))
+        bv_var.append(np.nanmean(np.nanmean((_P - _bar) ** 2, axis=0)))
+    bv_bias2 = np.array(bv_bias2)
+    bv_var = np.array(bv_var)
+    bv_total = bv_bias2 + bv_var + bv_sigma ** 2
+    return (
+        bv_bias2,
+        bv_datasets,
+        bv_degmax,
+        bv_degrees,
+        bv_grid,
+        bv_polyfit,
+        bv_sigma,
+        bv_test_pts,
+        bv_total,
+        bv_true_fn,
+        bv_var,
+    )
+
+
+@app.cell(hide_code=True)
+def _(bv_degmax, mo):
+    bv_degree_slider = mo.ui.slider(
+        start=1, stop=bv_degmax, step=1, value=1,
+        label="Degré du polynôme", show_value=True,
+    )
+    bv_x0_slider = mo.ui.slider(
+        start=0.05, stop=0.95, step=0.05, value=0.80,
+        label=r"$x_0$ (point de lecture du biais)", show_value=True,
+    )
+    mo.vstack([bv_degree_slider, bv_x0_slider])
+    return bv_degree_slider, bv_x0_slider
+
+
+@app.cell(hide_code=True)
+def _(bv_datasets, bv_degree_slider, bv_grid, bv_polyfit, bv_test_pts, np):
+    bv_d = int(bv_degree_slider.value)
+    bv_fits = [bv_polyfit(_x, _y, bv_d) for (_x, _y) in bv_datasets]
+    bv_curves = np.array([np.polyval(_c, bv_grid) for _c in bv_fits])
+    bv_mean = bv_curves.mean(axis=0)
+
+    _Pt = np.array([np.polyval(_c, bv_test_pts) for _c in bv_fits])
+    _Pt = np.where(np.isfinite(_Pt), _Pt, np.nan)
+    _bart = np.nanmean(_Pt, axis=0)
+    bv_vcloud = np.nanmean((_Pt - _bart) ** 2, axis=1)
+    bv_vcloud = bv_vcloud[np.isfinite(bv_vcloud) & (bv_vcloud > 0)]
+    bv_var_d = float(np.mean(bv_vcloud))     # = bv_var[bv_d - 1], la moyenne du nuage
+    return bv_curves, bv_d, bv_fits, bv_mean, bv_var_d, bv_vcloud
+
+
+@app.cell(hide_code=True)
+def _(
+    bleu,
+    bv_bias2,
+    bv_curves,
+    bv_d,
+    bv_degmax,
+    bv_degrees,
+    bv_fits,
+    bv_grid,
+    bv_mean,
+    bv_sigma,
+    bv_total,
+    bv_true_fn,
+    bv_var,
+    bv_var_d,
+    bv_vcloud,
+    bv_x0_slider,
+    gris,
+    np,
+    orange,
+    plt,
+    rouge,
+    vert,
+    violet,
+):
+    _x0 = float(bv_x0_slider.value)
+    _ylo, _yhi = -2.2, 2.2
+    _clip = lambda a: np.clip(a, _ylo, _yhi)
+
+    _fig, _axes = plt.subplots(2, 2, figsize=(13.5, 9))
+    _A, _B, _C = _axes[0, 0], _axes[0, 1], _axes[1, 0]
+    _axes[1, 1].axis("off")
+
+    for _c in bv_curves:
+        _A.plot(bv_grid, _clip(_c), color=orange, lw=0.8, alpha=0.05)
+    _A.plot([], [], color=orange, lw=1.4, alpha=0.5, label=r"modèles $\hat f$")
+    _A.fill_between(bv_grid, bv_true_fn(bv_grid) - bv_sigma, bv_true_fn(bv_grid) + bv_sigma,
+                    color=gris, alpha=0.12, label=r"bruit $\pm\sigma$")
+    _A.plot(bv_grid, bv_true_fn(bv_grid), "--", color=vert, lw=2.4, label=r"vraie fonction $f$")
+    _A.plot(bv_grid, _clip(bv_mean), color=rouge, lw=2.6, label=r"modèle moyen $\bar f$")
+
+    _p0 = np.array([np.polyval(_c, _x0) for _c in bv_fits])
+    _p0 = _p0[np.isfinite(_p0)]
+    _m0, _f0 = _p0.mean(), float(bv_true_fn(_x0))
+    _mc = float(_clip(np.array([_m0]))[0])
+    _A.axvline(_x0, color=gris, ls=":", lw=1.0, alpha=0.7)
+    _A.plot([_x0, _x0], [_f0, _m0], color="black", lw=2.6, zorder=6)
+    _A.annotate("biais", xy=(_x0, (_f0 + _m0) / 2), xytext=(_x0 - 0.20, (_f0 + _m0) / 2),
+                fontsize=11, va="center", arrowprops=dict(arrowstyle="-", color="black", lw=0.8))
+    _A.scatter([_x0], [_f0], marker="*", s=210, color=vert, ec="white", lw=0.6, zorder=7)
+    _A.scatter([_x0], [_mc], s=95, color=rouge, ec="white", lw=0.6, zorder=7)
+    _A.set_xlim(0, 1); _A.set_ylim(_ylo, _yhi)
+    _A.set_xlabel("$x$"); _A.set_ylabel("$y$", rotation=0)
+    _A.set_title(fr"Les $K$ modèles (degré {bv_d}) — biais en $x_0={_x0:.2f}$", fontsize=12)
+    _A.legend(loc="upper right", fontsize=9, framealpha=0.9)
+
+    _B.plot(bv_degrees, bv_var, "-", color=orange, lw=1.0, alpha=0.30)   
+    _B.plot(bv_degrees[:bv_d], bv_var[:bv_d], "-o", color=orange, lw=2.4, ms=5) 
+    _jr = np.random.default_rng(0)
+    _jit = _jr.uniform(-0.20, 0.20, bv_vcloud.size)
+    _B.scatter(bv_d + _jit, bv_vcloud, s=10, color=violet, alpha=0.22, zorder=3,
+               label=r"$(\hat f_i-\bar f)^2$ par modèle")
+    _B.scatter([bv_d], [bv_var_d], marker="D", s=95, color=orange, ec="black", lw=0.7, zorder=5,
+               label=r"variance $=$ moyenne")
+    _B.set_yscale("log")
+    _B.set_xlim(0.5, bv_degmax + 0.5); _B.set_xticks(bv_degrees)
+    _B.set_xlabel("Degré du polynôme"); _B.set_ylabel("Contribution à la variance (log)")
+    _B.set_title(r"Variance : dispersion des $K$ modèles", fontsize=12)
+    _B.legend(loc="upper left", fontsize=9, framealpha=0.9)
+
+    _C.semilogy(bv_degrees, bv_bias2, "o-", color=bleu, lw=2.0, ms=6, label=r"biais$^2$")
+    _C.semilogy(bv_degrees, bv_var, "s-", color=orange, lw=2.0, ms=6, label="variance")
+    _C.semilogy(bv_degrees, bv_total, "^-", color=violet, lw=2.4, ms=6, label="erreur de généralisation")
+    _C.axhline(bv_sigma ** 2, color=gris, ls="--", lw=1.4, label=r"erreur irréductible $\sigma^2$")
+    _C.axvline(bv_d, color=rouge, lw=1.3, alpha=0.7)
+    _C.set_xlabel("Degré du polynôme"); _C.set_ylabel("Erreur (échelle log)")
+    _C.set_xticks(bv_degrees)
+    _C.set_title("Décomposition de l'erreur de généralisation", fontsize=12)
+    _C.legend(loc="lower left", fontsize=9, framealpha=0.9)
+
+    _fig.tight_layout()
+    _fig
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ### Le compromis biais-variance
 
     On parle souvent de compromis biais-variance (il y a même une [page Wikipédia](https://fr.wikipedia.org/wiki/Dilemme_biais-variance) dédiée), mais même en étudiant la démonstration précédente et l'expression des trois contributions, il n'est pas trivial d'établir l'**antagonisme** entre ces termes.
 
-    En fait, on peut démontrer que si l'on évalue ces deux composantes le long d'une famille de complexité croissante, **leurs dérivées par rapport à la complexité sont de signes opposés** (le biais décroît, la variance croît). Cet antagonisme n'a donc de sens que si l'on considère biais et variance comme **fonctions de la complexité** du modèle.
+    En fait, on peut démontrer que si l'on évalue ces deux composantes le long d'une famille de complexité croissante, **leurs dérivées par rapport à la complexité sont de signes opposés** (le biais décroît, la variance croît). C'est d'ailleurs _exactement_ ce que l'on observe sur le graphique 3 un peu plus haut !
 
-    L'essentiel est de garder à l'esprit l'intuition suivante : complexifier le modèle (augmenter le degré, par exemple) réduit le biais mais gonfle la variance, et inversement. On ne peut annuler les deux simultanément, et l'erreur totale est minimale pour une complexité **intermédiaire** ; exactement le _meilleur compromis_ que repérait plus haut [la courbe d'erreur de validation](#visualisation-ecart-generalisation).
+    En conclusion, cet antagonisme n'a de sens que si l'on considère biais et variance comme **fonctions de la complexité** du modèle.
+
+    On gardera à l'esprit l'intuition suivante : complexifier le modèle (augmenter le degré, par exemple) réduit le biais mais gonfle la variance, et inversement. On ne peut annuler les deux simultanément, et l'erreur totale est minimale pour une complexité **intermédiaire** : exactement ce que l'on observe aussi sur ce même schéma.
 
     > Tout ceci à **taille de training set fixée**. Faire varier cette taille, c'est précisément ce que tracent les learning curves : biais et variance évoluent avec le nombre d'instances, ce qui explique le mouvement des deux courbes.
 
@@ -2512,12 +2703,7 @@ def _(mo):
       - Erreur d'entraînement basse
       - Écart asymptotique important
 
-    - **Bon ajustement**
-      - Faible erreur
-      - Faible écart
-
-    - **Pas assez de données**
-      - Les deux courbes sont encore en mouvement au bord droit
+    Par conséquent, un bon ajustement serait marqué par une faible erreur et un faible écart. Et si les deux courbes bougent encore beaucoup au bord droit, c'est probablement qu'on a pas assez de données.
 
     > Certains aspects de ces courbes restent largement imputables à la nature du modèle, notamment le fait que l'erreur d'entraînement augmente / reste proche de 0, ou que l'écart se résorbe / persiste avec les données.
 
