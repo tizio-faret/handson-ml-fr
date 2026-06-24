@@ -15,7 +15,8 @@ Notebooks écrits avec Marimo : stockés en fichiers Python, réactifs (les cell
 |---|---|---|---|
 | 2 | End-to-End ML Project (California Housing) | [Notebook statique](https://tizio-faret.github.io/handson-ml-fr/chapitre_02.html) | [Molab](https://molab.marimo.io/github/tizio-faret/handson-ml-fr/blob/main/notebooks/chapitre_02.py/server) |
 | 3 | Classification (MNIST) | [Notebook statique](https://tizio-faret.github.io/handson-ml-fr/chapitre_03.html) | [Molab](https://molab.marimo.io/github/tizio-faret/handson-ml-fr/blob/main/notebooks/chapitre_03.py/server) |
-| 4 | Training models | [Notebook statique](https://tizio-faret.github.io/handson-ml-fr/chapitre_04.html) | [Molab](https://molab.marimo.io/github/tizio-faret/handson-ml-fr/blob/main/notebooks/chapitre_04.py/server) |
+| 4 | Training models (1) | [Notebook statique](https://tizio-faret.github.io/handson-ml-fr/chapitre_04.html) | [Molab](https://molab.marimo.io/github/tizio-faret/handson-ml-fr/blob/main/notebooks/chapitre_04.py/server) |
+| 4 | Training models (2) | [Notebook statique](https://tizio-faret.github.io/handson-ml-fr/chapitre_04_2.html) | [Molab](https://molab.marimo.io/github/tizio-faret/handson-ml-fr/blob/main/notebooks/chapitre_04_2.py/server) |
 
 Les chapitres suivants seront ajoutés au fil du temps.
 
