@@ -8,7 +8,7 @@ app = marimo.App(width="medium")
 def _(mo):
     mo.md(r"""
     # **Chapitre 4 - entraînement de modèles**
-
+    ## Première partie : régressions, descente de gradient et courbes d'apprentissage
     ---
     """)
     return
@@ -2440,7 +2440,7 @@ def _(mo):
 
     1. **Graphe 1**, haut-gauche. Le faisceau orange réunit les $K$ modèles $\hat f$ ; la courbe rouge est le modèle moyen $\bar f$, la verte la vraie fonction $f$, la bande grise le bruit $\pm\sigma$. En l'abscisse $x_0$, le **segment noir mesure le biais $f(x_0)-\bar f(x_0)$ : l'écart entre la vraie fonction et le modèle moyen**.
 
-    2. **Graphe 2**, haut-droit. Chaque point violet est **dispersion $(\hat f_i - \bar f)^2$** d'un des $K$ modèles ; le losange orange est leur moyenne - c'est précisément la **variance**. La courbe se trace en fonction du degré : on voit la variance augmenter à mesure que les modèles se mettent à « coller » au bruit (overfit).
+    2. **Graphe 2**, haut-droit. Chaque point violet correspond à la **dispersion $(\hat f_i - \bar f)^2$** d'un des $K$ modèles ; le losange orange est leur moyenne - c'est précisément la **variance**. La courbe est tracée en fonction du degré : on voit la variance augmenter à mesure que les modèles se mettent à « coller » au bruit (overfit).
 
     3. **Graphe 3**, bas-gauche. Les trois contributions, cette fois **moyennées sur tout le domaine** des $x$, tracées en fonction de la complexité. Ce sont littéralement les composantes de l'**erreur de généralisation**, tracée en violet. Son creux marque la complexité optimale.
 
