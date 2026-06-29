@@ -149,6 +149,7 @@ def _():
     _A3 = np.c_[np.ones(N_3D), x1_3d, x2_3d]
     theta_opt_3d = np.linalg.lstsq(_A3, y_3d, rcond=None)[0]
     return (
+        N_2D,
         N_3D,
         np,
         plt,
@@ -1300,8 +1301,127 @@ def _(mo):
     $$ \text{une époque = chaque instance a été vue exactement une fois.} $$
 
 
-    ### Visualisation
+    ### Visualisations
 
+    On propose plusieurs visualisations pour bien comprendre ce qu'il se passe avec cette version stochastique.
+
+    À chaque itération, on tire une seule instance $(\mathbf{x}^{(i)}, y^{(i)})$ au hasard. Le segment rouge,  qui correspond à son résidu $\epsilon^{(i)} = y^{(i)} - \hat y^{(i)}$, suffit à estimer le gradient :
+
+    $$\nabla MSE\big(\boldsymbol{\theta}_k\,;\,\mathbf{x}^{(i)}, \mathbf{y}^{(i)}\big) = \frac{2}{m}\,\mathbf{X}^{\mathsf T}(\mathbf{X}\boldsymbol{\theta}_k - \mathbf{y})= \frac{2}{1}\,\mathbf{x}^{(i)}\big(\mathbf{x}^{(i)\mathsf T}\boldsymbol{\theta}_k - y^{(i)}\big) = 2\big(\hat y^{(i)} - y^{(i)}\big)\,\mathbf{x}^{(i)} = -\,2\,\epsilon^{(i)}\,\mathbf{x}^{(i)}$$
+
+    La droite courante (en orange) se déplace de $-\eta\nabla MSE$, elle est comme « tirée » par ce résidu.
+
+    > Le bouton « Itération suivante » sépare les deux temps : d'abord la sélection du point, puis la mise à jour des paramètres sur ce seul résidu.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(N_2D, mo, np, x_2d, y_2d):
+    sgd_lr = 0.1                  # learning rate choisi pour la lisibilité pédagogique
+    sgd_theta_init = (0.0, 0.0)   # départ volontairement éloigné de l'optimum
+    SGD_MAX_STEPS = 200
+
+    _seq_rng = np.random.default_rng(7)
+    _sequence = []
+    while len(_sequence) < SGD_MAX_STEPS:
+        _sequence.extend(_seq_rng.permutation(N_2D).tolist())
+    SGD_POINT_SEQUENCE = _sequence[:SGD_MAX_STEPS]
+
+    def sgd_reset_state():
+        return {"theta": sgd_theta_init, "theta_prev": sgd_theta_init,
+                "point": None, "step": 0, "phase": "start"}
+
+    def sgd_advance(s):
+        if s["phase"] in ("start", "apply"):
+            if s["step"] >= SGD_MAX_STEPS:
+                return s
+            _i = SGD_POINT_SEQUENCE[s["step"]]
+            return {"theta": s["theta"], "theta_prev": s["theta"],
+                    "point": _i, "step": s["step"], "phase": "select"}
+        _i = s["point"]
+        _t0, _t1 = s["theta"]
+        _xi, _yi = x_2d[_i], y_2d[_i]
+        _err = (_t0 + _t1 * _xi) - _yi  
+        _g0, _g1 = _err, _err * _xi     
+        return {"theta": (_t0 - sgd_lr * _g0, _t1 - sgd_lr * _g1),
+                "theta_prev": (_t0, _t1),
+                "point": _i, "step": s["step"] + 1, "phase": "apply"}
+
+    get_sgd, set_sgd = mo.state(sgd_reset_state())
+
+    sgd_next = mo.ui.button(label="Itération suivante  ▶",
+                            on_change=lambda _: set_sgd(sgd_advance))
+    sgd_reset = mo.ui.button(label="↺  Réinitialiser",
+                             on_change=lambda _: set_sgd(sgd_reset_state()))
+
+    mo.hstack([sgd_next, sgd_reset])
+    return (get_sgd,)
+
+
+@app.cell(hide_code=True)
+def _(bleu, get_sgd, np, orange, plt, rouge, theta_opt_2d, vert, x_2d, y_2d):
+    _s = get_sgd()
+    _t0, _t1 = _s["theta"]
+    _p0, _p1 = _s["theta_prev"]
+    _i = _s["point"]
+    _step = _s["step"]
+    _phase = _s["phase"]
+
+    _y_pred = _t0 + _t1 * x_2d
+    _mse = float(np.mean((y_2d - _y_pred) ** 2))
+    _xs = np.array([x_2d.min() - 0.1, x_2d.max() + 0.1])
+    _gris = "0.55"
+
+    _fig, _ax = plt.subplots(figsize=(7, 4.7))
+    _ax.scatter(x_2d, y_2d, color=bleu, s=35, alpha=0.8, zorder=3, label="Données")
+
+    _b0, _b1 = theta_opt_2d
+    _ax.plot(_xs, _b0 + _b1 * _xs, color=vert, lw=1.8, ls="--", alpha=0.85,
+             zorder=4, label=fr"Optimale : ${_b0:.2f} + {_b1:.2f}\,x$")
+
+    if _phase == "apply":
+        _ax.plot(_xs, _p0 + _p1 * _xs, color=_gris, lw=1.6, ls=":", alpha=0.9,
+                 zorder=4, label="Droite avant le pas")
+
+    _ax.plot(_xs, _t0 + _t1 * _xs, color=orange, lw=2.6, zorder=5,
+             label=fr"Droite courante : ${_t0:.2f} + {_t1:.2f}\,x$")
+
+    if _i is not None:
+        _xi, _yi = x_2d[_i], y_2d[_i]
+        _y_ref = (_p0 + _p1 * _xi) if _phase == "apply" else (_t0 + _t1 * _xi)
+        _res = _yi - _y_ref
+        _ax.plot([_xi, _xi], [_yi, _y_ref], color=rouge, lw=2.4, zorder=6,
+                 label="Résidu sélectionné")
+        _ax.scatter([_xi], [_yi], s=90, facecolor=rouge, edgecolor="black",
+                    linewidth=1.0, zorder=7)
+
+    if _phase == "start":
+        _titre = "État initial : cliquez sur « Itération suivante » pour sélectionner un point"
+    elif _phase == "select":
+        _titre = (fr"Itération {_step + 1} · SÉLECTION : point #{_i} ($x={_xi:.2f}$), "
+                  fr"résidu $= {_res:+.2f}$" "\n"
+                  "▶ cliquez pour appliquer le pas de gradient sur ce résidu")
+    else:  # apply
+        _dt0, _dt1 = _t0 - _p0, _t1 - _p1
+        _titre = (fr"Itération {_step} · MISE À JOUR sur le résidu $= {_res:+.2f}$" "\n"
+                  fr"$\Delta\theta_0={_dt0:+.3f}$,  $\Delta\theta_1={_dt1:+.3f}$ "
+                  fr"   |   MSE $= {_mse:.3f}$")
+
+    _ax.set_xlim(_xs[0], _xs[1])
+    _ax.set_ylim(-1, 13)
+    _ax.set_xlabel("$x$")
+    _ax.set_ylabel("$y$")
+    _ax.set_title(_titre, fontsize=10)
+    _ax.legend(loc="upper left", fontsize=8)
+    _ax.grid(True, alpha=0.3)
+    _fig
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     En raison de sa nature aléatoire, la descente de gradient stochastique est plus hasardeuse : la fonction de coût évolue beaucoup plus irrégulièrement, **elle ne décroit qu'en moyenne.**
 
     La figure suivante compare l'évolution la MSE au fil des itérations pour une descente batch et une descente stochastique.
