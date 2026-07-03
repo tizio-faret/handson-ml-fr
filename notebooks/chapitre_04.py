@@ -417,6 +417,11 @@ def _(mo):
     return m_slider, sigma_slider
 
 
+@app.cell
+def _():
+    return
+
+
 @app.cell(hide_code=True)
 def _(
     X_reg,
