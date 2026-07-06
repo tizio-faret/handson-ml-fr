@@ -1866,7 +1866,7 @@ def _(mo):
 
     L'implémentation de la **régression polynomiale**, qui consiste à prédire une variable cible à partir d'un polynôme de ses prédicteurs, ne différe pas beaucoup de celle de la régression linéaire.
 
-    En effet, si on dispose de deux prédicteurs $\mathbf{x}_{1}$ et $\mathbf{x}_{1}$, il suffit d'ajouter les vecteurs de features $\mathbf{x}_{1}²$, $\mathbf{x}_{1}³$, $\mathbf{x}_{2}²$, $\mathbf{x}_{2}³$, etc.. à la matrice de design puis de faire une régression linéaire à partir de ces nouvelles features.
+    En effet, si on dispose de deux prédicteurs $\mathbf{x}_{1}$ et $\mathbf{x}_{2}$, il suffit d'ajouter les vecteurs de features $\mathbf{x}_{1}²$, $\mathbf{x}_{1}³$, $\mathbf{x}_{2}²$, $\mathbf{x}_{2}³$, etc.. à la matrice de design puis de faire une régression linéaire à partir de ces nouvelles features.
 
     On génère un jeu de données non linéaire à un seul prédicteur, utile pour la suite.
     """)
@@ -2366,7 +2366,7 @@ def _(mo):
 
     Concrètement, il s'agit de mesurer l'erreur d'entraînement et l'erreur de validation à chaque itération de `partial_fit()`, puis de tracer cette évolution. Les deux courbes que l'on obtient sont appelées **learning curves** (courbes d'entraînement).
 
-    > Si le modèle ne supporte pas l'apprentissage incréméntal - i.e. ne dispose pas nativement de la méthode `partial_fit()` - , il suffit de le ré-entraîner complètement sur des sous-ensemble du training set de tailles croissantes.
+    > Si le modèle ne supporte pas l'apprentissage incrémental - i.e. ne dispose pas nativement de la méthode `partial_fit()` - , il suffit de le ré-entraîner complètement sur des sous-ensemble du training set de tailles croissantes.
 
     ### Implémentation Scikit <a id="implementation-scikit"></a>
 
@@ -2445,7 +2445,7 @@ def _(
     _axes[0].set_ylabel("RMSE")
     _axes[0].grid()
     _axes[0].axis([0, 160, 0, 2.5])
-    _axes[0].set_title("Learning curve : plot n°1") # Tu peux changer ce titre
+    _axes[0].set_title("Learning curve : plot n°1")
 
     _axes[1].plot(of_train_sizes, of_train_errors, "-+", color=rouge, linewidth=2, label="entraînement")
     _axes[1].plot(of_train_sizes, of_valid_errors, "-", color=bleu, linewidth=3, label="validation")

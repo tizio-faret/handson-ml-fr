@@ -29,10 +29,16 @@ def _():
     import matplotlib.pyplot as plt
 
     from sklearn.preprocessing import PolynomialFeatures, StandardScaler
-    from sklearn.linear_model import LinearRegression, Ridge, Lasso, ElasticNet, SGDRegressor, RidgeCV
+    from sklearn.linear_model import LinearRegression, Ridge, Lasso, ElasticNet, SGDRegressor, RidgeCV, LassoCV, ElasticNetCV
     from sklearn.pipeline import make_pipeline
     from sklearn.metrics import mean_squared_error
     from sklearn.model_selection import cross_val_score, RepeatedKFold
+
+    def make_poly_pipe(model, degree):
+        return make_pipeline(PolynomialFeatures(degree, include_bias=False), StandardScaler(), model)
+
+    def rmse(model, X, y):
+        return np.sqrt(mean_squared_error(y, model.predict(X)))
 
     rouge = "#c53030"
     orange = "#dd6b20"
@@ -43,23 +49,24 @@ def _():
     jaune = "#fcbf49"
     return (
         ElasticNet,
+        ElasticNetCV,
         Lasso,
+        LassoCV,
         LinearRegression,
         PolynomialFeatures,
         RepeatedKFold,
         Ridge,
         RidgeCV,
         SGDRegressor,
-        StandardScaler,
         bleu,
         cross_val_score,
         gris,
-        make_pipeline,
-        mean_squared_error,
+        make_poly_pipe,
         mo,
         np,
         orange,
         plt,
+        rmse,
         rouge,
         vert,
         violet,
@@ -93,47 +100,56 @@ def _(mo):
 
     > L'importance de ce deuxième effet est contrôlé par le paramètre $\alpha$.
 
-    ### Visualisations
+    ### Visualisations <a id="learning-curves"></a>
 
-    Dans le graphique ci-dessous, on balaie $\alpha$ et on trace les deux RMSE : l'**écart entre l'erreur d'entraînement et de test** est caractéristique de l'overfitting, comme vu en première partie, c'est donc lui qu'on cherche à refermer. Le $\alpha$ retenu (pointillés) minimise l'erreur de **validation croisée sur le training set** ; la MSE est ensuite calculée sur le test set puis reportée sur le titre du graphique, de sorte à obtenir un chiffre honnête et comparable entre Ridge, Lasso et Elastic-Net.
+    Dans le graphique ci-dessous, on balaie $\alpha$ et on trace les deux RMSE : l'**écart entre l'erreur d'entraînement et de test**, caractéristique de l'overfitting. Le $\alpha$ retenu (pointillés) minimise l'erreur de **validation croisée sur le training set**.
+
+    On reporte dans le titre du graphique deux métriques pour comparer Ridge, Lasso et Elastic-Net en terme de **qualité des prédictions** et de **surapprentissage** :
+
+    1. Calcul de la MSE sur le test set
+    2. Calcul de l'écart de généralisation $\Delta_{\text{gén}}$ (erreur de test $-$ erreur d'entraînement)
+
+    > L'écart de généralisation Ridge est mis en perspective avec l'écart de généralisation d'une régression sans régularisation, de sorte qu'on puisse observer la capacité des modèles régularisés à réduire le surapprentissage.
     """)
     return
 
 
 @app.cell(hide_code=True)
 def _(
-    PolynomialFeatures,
     RepeatedKFold,
-    StandardScaler,
     bleu,
     cross_val_score,
     gris,
-    make_pipeline,
-    mean_squared_error,
+    make_poly_pipe,
     np,
     plt,
     poly_X,
     poly_Xte,
     poly_max_degree,
+    poly_rmse_ols,
     poly_rmse_oracle,
     poly_y,
     poly_yte,
+    rmse,
     rouge,
 ):
     def courbe_regularisation(make_model, alphas, couleur, nom):
         _cv_split = RepeatedKFold(n_splits=5, n_repeats=30, random_state=42) 
         _train, _test, _cv = [], [], []
         for _a in alphas:
-            _pipe = make_pipeline(PolynomialFeatures(poly_max_degree, include_bias=False),
-                                  StandardScaler(), make_model(_a))
+            _pipe = make_poly_pipe(make_model(_a), poly_max_degree)
             _cv.append(-cross_val_score(_pipe, poly_X, poly_y, cv=_cv_split,
                                         scoring="neg_root_mean_squared_error").mean())
             _pipe.fit(poly_X, poly_y)
-            _train.append(np.sqrt(mean_squared_error(poly_y,   _pipe.predict(poly_X))))
-            _test.append( np.sqrt(mean_squared_error(poly_yte, _pipe.predict(poly_Xte))))
+            _train.append(rmse(_pipe, poly_X, poly_y))
+            _test.append(rmse(_pipe, poly_Xte, poly_yte))
         _train, _test = np.array(_train), np.array(_test)
         _ibest = int(np.argmin(_cv))        
         _a_best, _test_best = alphas[_ibest], _test[_ibest]
+
+        _train_best = _train[_ibest]
+        _gap = _test_best - _train_best  
+        _gap0 = poly_rmse_ols[1] - poly_rmse_ols[0]   
 
         _fig, _ax = plt.subplots(figsize=(8.5, 4.6))
         _ax.fill_between(alphas, _train, _test, color=couleur, alpha=0.12,
@@ -146,7 +162,8 @@ def _(
                     zorder=6, label=fr"$\alpha$ choisi par CV = {_a_best:.3g}")
         _ax.set_xscale("log")
         _ax.set_xlabel(r"$\alpha$ (échelle log)"); _ax.set_ylabel("RMSE")
-        _ax.set_title(f"{nom} | RMSE test {_test_best:.3f}", fontsize=11.5)
+        _ax.set_title(f"RMSE test {_test_best:.3f} | "
+                      f"$\\Delta_{{\\text{{gén}}}}$ sans régularisation {_gap0:.2f} | $\\Delta_{{\\text{{gén}}}}$ Ridge {_gap:.2f}", fontsize=11.5)
         _ax.legend(fontsize=8, loc="upper center", framealpha=0.92)
         for _s in ("top", "right"): _ax.spines[_s].set_visible(False)
         _fig.tight_layout(); plt.close(_fig)
@@ -166,24 +183,13 @@ def _(mo):
     mo.md(r"""
     Plus $\alpha$ est proche de 0, plus la pénalisation est faible et plus le modèle tend à se comporter comme une régression classique.
 
-    Visuellement, sur une régression linéaire, augmenter $\alpha$ conduit à des prédictions plus lisses, ce qui réduit la variance du modèle mais augmente son biais.
+    Visuellement, sur une régression linéaire, augmenter $\alpha$ conduit à des prédictions plus lisses, ce qui réduit la variance du modèle mais augmente son biais (on l'observe d'ailleurs très bien sur le graphique ci-dessus).
     """)
     return
 
 
 @app.cell(hide_code=True)
-def _(
-    LinearRegression,
-    PolynomialFeatures,
-    Ridge,
-    StandardScaler,
-    bleu,
-    make_pipeline,
-    np,
-    plt,
-    rouge,
-    vert,
-):
+def _(LinearRegression, Ridge, bleu, make_poly_pipe, np, plt, rouge, vert):
     _rng = np.random.default_rng(seed=42)
     _m = 20 
     X_regularization_demo = 3 * _rng.random((_m, 1))
@@ -206,10 +212,7 @@ def _(
             else:
                 model = LinearRegression()
             if polynomial:
-                model = make_pipeline(
-                    PolynomialFeatures(degree=10, include_bias=False),
-                    StandardScaler(),
-                    model)
+                model = make_poly_pipe(model, 10)
             model.fit(X_regularization_demo, y_regularization_demo)
             y_new_regul = model.predict(X_new_regularization_demo)
             plt.plot(X_new_regularization_demo, y_new_regul,
@@ -233,24 +236,21 @@ def _(mo):
     mo.md(r"""
     ### Genèse du terme de pénalisation
 
-    Pourquoi est-ce que réduire la norme 2 des paramètres empêcherait _nécessairement_ le modèle de trop coller au données ? Ne pourrait-on pas trouver une distribution bruitée pour laquelle un modèle qui surapprend a une norme inférieure à la fonction de génération ?
+    Pourquoi est-ce que réduire la norme 2 des paramètres empêcherait _nécessairement_ le modèle de trop coller au données ?
 
-    En effet, un tel contre-exemple existe bel et bien. La justification est que l'implication
-
-    $$ \text{overfitting} \Longrightarrow {{\| \mathbf{w}\|}_2} \text{ élevée} $$
-
-    est vraie **en espérance** sur le tirage du bruit. En notant $\mathbf{w}^\star$ le vrai vecteur des paramètres (sans le biais) issu de la fonction de génération, on peut montrer que :
+    En notant $\mathbf{w}^\star$ le vrai vecteur des paramètres (sans le biais) issu de la fonction de génération, on peut montrer que :
 
     $$\;\mathbb{E}\big[\|\hat{\mathbf{w}}\|_2^{\,2}\big] \;=\; \|\mathbf{w}^\star\|_2^{\,2} \;+\operatorname{tr}\left(\operatorname{Cov}(\hat{\mathbf{w}})\right)  \quad ; \quad \operatorname{tr}\left(\operatorname{Cov}(\hat{\mathbf{w}})\right)>0$$
 
-    En moyenne sur le bruit, la norme du modèle d'estimation dépasse toujours celle de la vraie fonction, et l'excès vaut exactement la **variance des paramètres estimés**. Et cette variance des paramètres, elle intervient justement dans l'expression de la variance des prédictions, celle-là même de la décomposition biais-variance de la première partie. Et on sait déjà que variance élevée $\Longrightarrow$ overfitting.
+    En moyenne sur le bruit, la norme du modèle d'estimation dépasse toujours celle de la vraie fonction, et l'excès vaut exactement la **variance des paramètres estimés**. Et cette variance des paramètres intervient justement dans l'expression de la variance des prédictions, celle-là même de la décomposition biais-variance de la première partie. Et on sait déjà que variance élevée $\Longrightarrow$ overfitting.
 
-    En résumé, l'intuition à garder est que « **réduire la norme pénalise les configurations où le modèle surapprend** » et non « tout modèle qui surapprend a une grande norme ». C'est aussi pourquoi $\alpha$ reste un hyperparamètre : le bon dosage dépend de la vraie fonction, inconnue, donc on le choisit par validation croisée.
-
+    > Ce résultat est vrai en espérance sur le tirage du bruit, ce n'est donc pas une régle absolue. On pourrait trouver une distribution bruitée pour laquelle un modèle qui surapprend a une norme inférieure à la fonction de génération.
 
     ### Standardisation
 
     Cette régression étant particulièrement sensible aux poids du modèle, il devient d'autant plus important de standardiser au préalable les features (via `StandardScaler` par exemple) de sorte à ce que les poids des modèles soient seulement proportionnels à leur importance, et non plus à leur ordre de grandeur.
+
+    C'est d'ailleurs vrai pour **tous les modèles de régularisation linéaires** : Ridge, Lasso et Elastic-Net.
 
     ### Implémentation
 
@@ -286,7 +286,7 @@ def _(mo):
     &\implies \hat{\boldsymbol{\theta}} = \left( \mathbf{X}^{\mathsf T}\mathbf{X} + \alpha\mathbf{D} \right)^{-1} \mathbf{X}^{\mathsf T}\mathbf{y}
     \end{aligned}$$
     ///
-     <a id="implementation-ridge-scikit"></a>
+    <a id="implementation-ridge-scikit"></a>
     Comme vu avec la régression classique, Scikit-Learn ne calcule pas $\hat{\boldsymbol{\theta}}$ directement. Le choix de l'algorithme se fait selon la **nature des données **(denses, creuses, nombre d'observations, etc.)
 
     L'implémentation se fait très facilement avec le prédicteur `Ridge` :
@@ -338,7 +338,7 @@ def _(X, m, np, ridge_reg, y):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    Dans ce cas particulier, les estimations coincident presque parfaitement. On a bon espoir que dans le cas général, la prédiction de Scikit soit **meilleure** et **plus rapide**.
+    Dans ce cas particulier, les estimations coïncident presque parfaitement. On a bon espoir que dans le cas général, la prédiction de Scikit soit **meilleure** et **plus rapide**.
 
     On peut aussi utiliser la **descente de gradient stochastique** pour calculer $\hat{\boldsymbol{\theta}}$ ; les avantages / inconvénients sont ceux qu'on a abordé dans la première partie. L'implémentation se fait de nouveau via `SGDRegressor` :
     """)
@@ -347,7 +347,7 @@ def _(mo):
 
 @app.cell
 def _(SGDRegressor, X, m, y):
-    sgd_reg = SGDRegressor(penalty="l2", alpha=0.1 / m, tol=None, max_iter=1000, eta0=0.01, random_state=42)
+    sgd_reg = SGDRegressor(penalty="l2", alpha=2*0.1 / m, tol=None, max_iter=1000, eta0=0.01, random_state=42)
     _ = sgd_reg.fit(X, y.ravel()) 
     return
 
@@ -355,15 +355,15 @@ def _(SGDRegressor, X, m, y):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    Petite subtilité ici ! En précisant `penalty="l2"`, on ajoute $\alpha {{\| \mathbf{w}\|}_2}^{2}$ à la fonction de perte. Puisqu'on veut plutôt ajouter $\displaystyle \frac{\alpha}{m} {{\| \mathbf{w}\|}_2}^{2}$, on doit imposer `alpha=0.1 / m` en divisant bien par $m$.
+    Petite subtilité ici ! En précisant `penalty="l2"`, Scikit ajoute $\alpha {{\| \mathbf{w}\|}_2}^{2}$ à la MSE. Puisqu'on veut plutôt ajouter $\displaystyle \frac{\alpha}{m} {{\| \mathbf{w}\|}_2}^{2}$, on doit imposer `alpha=0.1 / m` en divisant bien par $m$.
 
     ### RidgeCV
 
-    On présente une dernière optimisation pour notre régression Ridge. Elle est très semblable au [`Ridge`](#implementation-ridge-scikit) que l'on vient de voir, mais intègre une optimisation de l'hyper-paramètre $\alpha$ par validation croisée.
+    On présente une dernière optimisation pour notre régression Ridge. Elle est semblable au [`Ridge`](#implementation-ridge-scikit) que l'on vient de voir, mais intègre un fine-tuning de l'hyper-paramètre $\alpha$ par validation croisée.
 
     Pourquoi ne pas se contenter du classique `Ridge` + `GridSearchCV` ?
 
-    Très bonne question, et je vous remercie de l'avoir posée. En fait, `RidgeCV` fait exactement la même chose mais de façon **optimisée pour la régression Ridge** et s'exécute donc beaucoup **plus rapidement**.
+    Très bonne question, et je vous remercie de l'avoir posée. En fait, `RidgeCV` fait exactement la même chose mais de façon **optimisée pour la régression Ridge** et s'exécute donc **plus rapidement**.
 
     > Scikit propose de telles optimisations pour de nombreux autres estimateurs. Par exemple `LassoCV` et `ElasticNetCV` existent - on y reviendra en temps voulu.
     """)
@@ -389,7 +389,163 @@ def _(mo):
     ---
     ## B. Régression Lasso
 
-    Lasso est
+    Lasso est une autre version régularisée de la régression linéaire. Sa fonction de perte mobilise la norme 1 :
+
+    $$J(\boldsymbol{\theta}) = \mathrm{MSE}(\boldsymbol{\theta}) + 2 \alpha \sum_{i=1}^{n} | \theta_i | = \mathrm{MSE}(\boldsymbol{\theta}) + 2 \alpha  {{\| \mathbf{w}\|}_1}$$
+
+    Contrairement à Ridge, qui réduit progressivement tous les coefficients sans jamais les annuler exactement, la régression Lasso peut **annuler des poids** : elle effectue automatiquement de la **feature selection**.
+
+    ### Effets de la régularisation
+
+    La régularisation **déforme la fonction de perte**.
+
+    - Elle **déplace le minimum** : il se rapproche de l'origine quand on augmente $\alpha$
+    - Elle **modifie la trajectoire de la descente** de gradient.
+
+    La descente se déplace orthogonalement aux lignes de niveau : dans le cas de $\ell_1$, celles-ci sont des **losanges** ($|\theta_1| + |\theta_2| = \text{cste}$) et le gradient vaut $(\pm1, \pm1)$. Les deux coefficients diminuent donc de la **même quantité** à chaque pas (déplacement en diagonale). Le coefficient déjà le plus proche de 0 l'atteint le premier ; une fois nul, la trajectoire longe l'axe et **le coefficient y reste**, car le gradient $\ell_1$ continue de le pousser vers 0 avec une amplitude constante. C'est ainsi que Lasso parvient à imposer des coefficients exactement nuls.
+
+    Côté Ridge, les lignes de niveau de $\ell_2$ sont des **cercles** : le gradient pointe radialement vers l'origine, la descente suit une ligne droite et rétrécit tous les coefficients proportionnellement, sans jamais les annuler.
+
+    Le type de pénalisation influence également la **convergence** :
+
+    - **$\ell_1$ (Lasso)** : oscille un peu autour de l'optimum, car la partie $\nabla \ell_1$ de $\nabla J(\boldsymbol{\theta})$ ne s'approche jamais de 0 (elle vaut $-1$ ou $+1$ pour chaque paramètre).
+    - **$\ell_2$ (Ridge)** : les gradients rapetissent à mesure qu'on approche de l'optimum, donc la descente ralentit naturellement. Cela limite les oscillations et fait converger Ridge plus vite que Lasso.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(np, plt):
+    t1a, t1b, t2a, t2b = -1, 3, -1.5, 1.5
+
+    t1s = np.linspace(t1a, t1b, 500)
+    t2s = np.linspace(t2a, t2b, 500)
+    t1, t2 = np.meshgrid(t1s, t2s)
+    T = np.c_[t1.ravel(), t2.ravel()]
+    Xr = np.array([[1, 1], [1, -1], [1, 0.5]])
+    yr = 2 * Xr[:, :1] + 0.5 * Xr[:, 1:]
+
+    J = (1 / len(Xr) * ((T @ Xr.T - yr.T) ** 2).sum(axis=1)).reshape(t1.shape)
+
+    N1 = np.linalg.norm(T, ord=1, axis=1).reshape(t1.shape)
+    N2 = np.linalg.norm(T, ord=2, axis=1).reshape(t1.shape)
+
+    t_min_idx = np.unravel_index(J.argmin(), J.shape)
+    t1_min, t2_min = t1[t_min_idx], t2[t_min_idx]
+
+    t_init = np.array([[0.25], [-1]])
+
+    def bgd_path(theta, X, y, l1, l2, core=1, eta=0.05, n_iterations=200):
+        path = [theta]
+        for iteration in range(n_iterations):
+            gradients = (core * 2 / len(X) * X.T @ (X @ theta - y)
+                         + l1 * np.sign(theta) + l2 * theta)
+            theta = theta - eta * gradients
+            path.append(theta)
+        return np.array(path)
+
+    fig, axes = plt.subplots(2, 2, sharex=True, sharey=True, figsize=(9, 7))
+
+    for i, N, l1, l2, title in ((0, N1, 2.0, 0, "Lasso"), (1, N2, 0, 2.0, "Ridge")):
+        JR = J + l1 * N1 + l2 * 0.5 * N2 ** 2
+
+        tr_min_idx = np.unravel_index(JR.argmin(), JR.shape)
+        t1r_min, t2r_min = t1[tr_min_idx], t2[tr_min_idx]
+
+        levels = np.exp(np.linspace(0, 1, 20)) - 1
+        levelsJ = levels * (J.max() - J.min()) + J.min()
+        levelsJR = levels * (JR.max() - JR.min()) + JR.min()
+        levelsN = np.linspace(0, N.max(), 10)
+
+        path_J = bgd_path(t_init, Xr, yr, l1=0, l2=0)
+        path_JR = bgd_path(t_init, Xr, yr, l1, l2)
+        path_N = bgd_path(theta=np.array([[2.0], [0.5]]), X=Xr, y=yr,
+                          l1=np.sign(l1) / 3, l2=np.sign(l2), core=0)
+        ax = axes[i, 0]
+        ax.grid()
+        ax.axhline(y=0, color="k")
+        ax.axvline(x=0, color="k")
+        ax.contourf(t1, t2, N / 2.0, levels=levelsN)
+        ax.plot(path_N[:, 0], path_N[:, 1], "y--")
+        ax.plot(0, 0, "ys")
+        ax.plot(t1_min, t2_min, "ys")
+        ax.set_title(fr"$\ell_{i + 1}$ penalty")
+        ax.axis([t1a, t1b, t2a, t2b])
+        if i == 1:
+            ax.set_xlabel(r"$\theta_1$")
+        ax.set_ylabel(r"$\theta_2$", rotation=0)
+
+        ax = axes[i, 1]
+        ax.grid()
+        ax.axhline(y=0, color="k")
+        ax.axvline(x=0, color="k")
+        ax.contourf(t1, t2, JR, levels=levelsJR, alpha=0.9)
+        ax.plot(path_JR[:, 0], path_JR[:, 1], "w-o")
+        ax.plot(path_N[:, 0], path_N[:, 1], "y--")
+        ax.plot(0, 0, "ys")
+        ax.plot(t1_min, t2_min, "ys")
+        ax.plot(t1r_min, t2r_min, "rs")
+        ax.set_title(title)
+        ax.axis([t1a, t1b, t2a, t2b])
+        if i == 1:
+            ax.set_xlabel(r"$\theta_1$")
+
+    plt.show()
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    > Pour permettre à Lasso de converger, on le combine généralement à un learning schedule décroissant.
+
+    ### Sous-gradient
+
+    L'implémentation de la régression Lasso **par descente de gradient** se heurte à un problème majeur : la norme $\ell_1$ n'est pas différentiable dès qu'une coordonnée est nulle.
+
+    Une solution typique consiste à remplacer $\nabla \ell_1$ par un **vecteur** $\partial\|\boldsymbol\theta\|_{1}$ **de sous-gradient** :
+    $$\partial\|\boldsymbol\theta\|_{1} = \begin{pmatrix} \operatorname{sign}(\theta_1) \\ \operatorname{sign}(\theta_2) \\ \vdots \\ \operatorname{sign}(\theta_n) \end{pmatrix} \quad \quad \text{avec} \ \operatorname{sign}(\theta_i)= \begin{cases} -1 & \text{si } \theta_i < 0, \\ 0 & \text{si } \theta_i = 0, \\ +1 & \text{si } \theta_i > 0. \end{cases}$$
+
+    En plus d'étendre la définition de $\nabla \ell_1$ en tout point ayant une composante nulle, les deux vecteurs $\partial\|\boldsymbol\theta\|_{1}$ et $\nabla \ell_1$ **coïncident lorsqu'aucune composante n'est nulle**.
+
+    /// details| L'intuition du sous-gradient (pour aller plus loin)
+    Le sous-gradient est une **généralisation du gradient aux fonctions non différentiables**. On présente l'intuition derrière cette notion avec le cas de la norme $\ell_1$. Considérons une seule variable :
+    $$f(\theta)=|\theta|.$$
+
+    Sa dérivée vaut :
+    - $+1$ si $\theta>0$,
+    - $-1$ si $\theta<0$,
+    - elle **n'existe pas** en $\theta=0$.
+
+    Pourtant, on sait intuitivement quoi faire :
+    - si $\theta>0$, il faut aller vers la gauche (vers 0) ;
+    - si $\theta<0$, il faut aller vers la droite (vers 0).
+
+    C'est exactement ce que traduit
+
+    $$\operatorname{sign}(\theta)=
+    \begin{cases}
+    -1 & \text{si } \theta<0,\\
+    0  & \text{si } \theta=0,\\
+    1  & \text{si } \theta>0.
+    \end{cases}$$
+
+    Le sous-gradient indique simplement **de quel côté se trouve le minimum**.
+
+    D'autre part, on décide de fixer $\operatorname{sign}(0)=0$  de sorte que **le paramètre reste inchangé lorsqu'il est déjà nul**. Il s'agit d'une convention propre au machine learning : mathématiquement, le sous gradient de $|\theta|$ en 0 vaut $\partial |\theta|_{,\theta=0}=[-1,1]$ (n'importe quelle pente comprise entre -1 et +1 est valable).
+
+    ///
+
+    L'expression en tout point de la fonction de perte Lasso devient :
+    $$\mathbf{g}(\boldsymbol\theta)=\nabla_{\boldsymbol\theta}\,\mathrm{MSE}(\boldsymbol\theta)+2\alpha\,\partial\|\boldsymbol\theta\|_{1}.$$
+
+    ### Visualisation
+
+    On s'intéresse, dans le cadre de la régression Lasso, à l'évolution de l'erreur d'entraînement et de validation, [déjà tracés pour la régression Ridge](#learning-curves).
+
+    Par rapport à Ridge  :
+    1. L'erreur sur le test set est un peu meilleure : réduction de $0.007$
+    2. Moins d'overfitting : réduction de l'écart de généralisation de $0.03$
     """)
     return
 
@@ -403,8 +559,59 @@ def _(Lasso, courbe_regularisation, np, orange):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    ### Implémentation
+
+    L'implémentation de Lasso avec Scikit est très similaire à celle de la régression Ridge.
+    """)
+    return
+
+
+@app.cell
+def _(Lasso, X, y):
+    lasso_reg = Lasso(alpha=0.1)
+    _ = lasso_reg.fit(X, y)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    > Cette implémentation mobilise en silence un algorithme de **coordinate descent**. J'invite le lecteur curieux à se renseigner à son sujet.
+
+    Version descente de gradient stochastique :
+    """)
+    return
+
+
+@app.cell
+def _(SGDRegressor, X, m, y):
+    sgd_lasso_reg = SGDRegressor(penalty="l1", alpha=0.1 / m, tol=None, max_iter=1000, eta0=0.01, random_state=42)
+    _ = sgd_lasso_reg.fit(X, y.ravel()) 
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Version fine-tuning intégré de $\alpha$ par validation croisée :
+    """)
+    return
+
+
+@app.cell
+def _(LassoCV, X, np, y):
+    lassocv_reg = LassoCV(alphas=np.logspace(-3, 3, 100))
+    _ = lassocv_reg.fit(X, y.ravel())
+
+    print(f"alpha choisi par LassoCV : {lassocv_reg.alpha_:.4f}")
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ---
-    ## C. Régularisation des modèles polynomiaux
+    ## <a id="regularisation-modele-polynomiaux"></a>C. Régularisation des modèles polynomiaux
 
     La régularisation d'un modèle de régression polynomiale peut se faire simplement en **réduisant son degré maximal** (option `degree` de `PolynomialFeatures`).
 
@@ -461,10 +668,9 @@ def _(
     LinearRegression,
     PolynomialFeatures,
     Ridge,
-    StandardScaler,
-    make_pipeline,
-    mean_squared_error,
+    make_poly_pipe,
     np,
+    rmse,
 ):
     poly_ref_degree = 3
     poly_max_degree = 7
@@ -484,16 +690,13 @@ def _(
     poly_Xte = _xte.reshape(-1, 1)
     poly_yte = f(_xte) + _rng.normal(0.0, poly_noise, 2000)
 
-    def _pipe(_deg, _model):
-        return make_pipeline(PolynomialFeatures(_deg, include_bias=False),
-                             StandardScaler(), _model).fit(poly_X, poly_y)
-    def _rmse(_m, _X, _y):
-        return np.sqrt(mean_squared_error(_y, _m.predict(_X)))
+    def fit_poly(model, degree=poly_max_degree):
+        return make_poly_pipe(model, degree).fit(poly_X, poly_y)
 
-    poly_model_ols = _pipe(poly_max_degree, LinearRegression())
+    poly_model_ols = fit_poly(LinearRegression())
     poly_coefs_ols = poly_model_ols[-1].coef_
-    poly_rmse_ols = (_rmse(poly_model_ols, poly_X, poly_y), _rmse(poly_model_ols, poly_Xte, poly_yte))
-    poly_rmse_oracle = _rmse(_pipe(poly_ref_degree, LinearRegression()), poly_Xte, poly_yte)
+    poly_rmse_ols = (rmse(poly_model_ols, poly_X, poly_y), rmse(poly_model_ols, poly_Xte, poly_yte))
+    poly_rmse_oracle = rmse(fit_poly(LinearRegression(), poly_ref_degree), poly_Xte, poly_yte)
 
     _sigma = PolynomialFeatures(poly_max_degree, include_bias=False).fit_transform(poly_X).std(axis=0)
     poly_true_std = np.array([poly_true_coefs[1], poly_true_coefs[2], poly_true_coefs[3],
@@ -501,12 +704,13 @@ def _(
 
     poly_wmax_ols = 1.1 * np.abs(poly_coefs_ols).max()
     poly_wmax_reg = 1.15 * max(
-        np.abs(_pipe(poly_max_degree, Ridge(alpha=0.01))[-1].coef_).max(),
-        np.abs(_pipe(poly_max_degree, Lasso(alpha=0.01, max_iter=300_000))[-1].coef_).max(),
+        np.abs(fit_poly(Ridge(alpha=0.01))[-1].coef_).max(),
+        np.abs(fit_poly(Lasso(alpha=0.01, max_iter=300_000))[-1].coef_).max(),
         np.abs(poly_true_std).max(),
     )
     return (
         f,
+        fit_poly,
         poly_X,
         poly_Xte,
         poly_hi,
@@ -514,6 +718,7 @@ def _(
         poly_max_degree,
         poly_model_ols,
         poly_n_train,
+        poly_rmse_ols,
         poly_rmse_oracle,
         poly_true_std,
         poly_wmax_ols,
@@ -523,18 +728,23 @@ def _(
     )
 
 
+@app.cell
+def _(Lasso, Ridge, alpha_lasso_slider, alpha_ridge_slider, fit_poly):
+    aR = alpha_ridge_slider.value
+    aL = alpha_lasso_slider.value
+    poly_ridge = fit_poly(Ridge(alpha=aR))
+    poly_lasso = fit_poly(Lasso(alpha=aL, max_iter=300_000))
+    return aL, aR, poly_lasso, poly_ridge
+
+
 @app.cell(hide_code=True)
 def _(
-    Lasso,
-    PolynomialFeatures,
-    Ridge,
-    StandardScaler,
+    aL,
+    aR,
     alpha_lasso_slider,
     alpha_ridge_slider,
     f,
     gris,
-    make_pipeline,
-    mean_squared_error,
     mo,
     montre_lasso,
     montre_ols,
@@ -545,31 +755,20 @@ def _(
     plt,
     poly_X,
     poly_hi,
+    poly_lasso,
     poly_lo,
-    poly_max_degree,
     poly_model_ols,
     poly_n_train,
+    poly_ridge,
     poly_y,
     rouge,
     vert,
 ):
-    _aR = alpha_ridge_slider.value
-    _aL = alpha_lasso_slider.value
-
-    def _pipe(_deg, _model):
-        return make_pipeline(PolynomialFeatures(_deg, include_bias=False),
-                             StandardScaler(), _model).fit(poly_X, poly_y)
-    def _rmse(_m, _X, _y):
-        return np.sqrt(mean_squared_error(_y, _m.predict(_X)))
-
-    _ridge = _pipe(poly_max_degree, Ridge(alpha=_aR))
-    _lasso = _pipe(poly_max_degree, Lasso(alpha=_aL, max_iter=300_000))
-
     _courbes = [
         (montre_vrai.value,  None,            "#1a202c", "vrai polynôme (deg 3)", "--"),
-        (montre_ols.value,   poly_model_ols,  rouge,    "sans pénalité",         "-"),
-        (montre_ridge.value, _ridge,          vert,      f"Ridge ($\\alpha_1$={_aR:g})", "-"),
-        (montre_lasso.value, _lasso,          orange,    f"Lasso ($\\alpha_2$={_aL:g})", "-"),
+        (montre_ols.value,   poly_model_ols,  rouge,    "sans pénalité",          "-"),
+        (montre_ridge.value, poly_ridge,      vert,      f"Ridge ($\\alpha_1$={aR:g})", "-"),
+        (montre_lasso.value, poly_lasso,      orange,    f"Lasso ($\\alpha_2$={aL:g})", "-"),
     ]
 
     _fig1, _ax = plt.subplots(figsize=(8.5, 4.6))
@@ -604,44 +803,28 @@ def _(
 
 @app.cell(hide_code=True)
 def _(
-    Lasso,
-    PolynomialFeatures,
-    Ridge,
-    StandardScaler,
-    alpha_lasso_slider,
-    alpha_ridge_slider,
-    make_pipeline,
-    mean_squared_error,
+    aL,
+    aR,
     np,
     orange,
     plt,
-    poly_X,
     poly_Xte,
+    poly_lasso,
     poly_max_degree,
     poly_model_ols,
+    poly_ridge,
     poly_true_std,
     poly_wmax_ols,
     poly_wmax_reg,
-    poly_y,
     poly_yte,
+    rmse,
+    rouge,
     vert,
 ):
-    _rouge = "#c53030"
-    _aR = alpha_ridge_slider.value
-    _aL = alpha_lasso_slider.value
-
-    def _pipe(_deg, _model):
-        return make_pipeline(PolynomialFeatures(_deg, include_bias=False),
-                             StandardScaler(), _model).fit(poly_X, poly_y)
-    def _rmse(_m, _X, _y):
-        return np.sqrt(mean_squared_error(_y, _m.predict(_X)))
-
-    _ridge = _pipe(poly_max_degree, Ridge(alpha=_aR))
-    _lasso = _pipe(poly_max_degree, Lasso(alpha=_aL, max_iter=300_000))
     _panneaux = [
-        ("Régression polynomiale classique", poly_model_ols, _rouge, poly_wmax_ols),
-        (f"Ridge ($\\alpha_1$={_aR:g})", _ridge, vert, poly_wmax_reg),
-        (f"Lasso ($\\alpha_2$={_aL:g})", _lasso, orange, poly_wmax_reg),
+        ("Régression polynomiale classique", poly_model_ols, rouge, poly_wmax_ols),
+        (f"Ridge ($\\alpha_1$={aR:g})", poly_ridge, vert,   poly_wmax_reg),
+        (f"Lasso ($\\alpha_2$={aL:g})", poly_lasso, orange, poly_wmax_reg),
     ]
 
     _degres = np.arange(1, poly_max_degree + 1)
@@ -653,7 +836,7 @@ def _(
         for _d, _tv in zip(_degres, poly_true_std):
             _ax2.plot([_d - 0.34, _d + 0.34], [_tv, _tv], color="black", lw=2.4, zorder=6,
                       solid_capstyle="round")
-        _ax2.set_title(f"{_nom}\nRMSE test {_rmse(_m, poly_Xte, poly_yte):.2f}", fontsize=10.5, pad=8)
+        _ax2.set_title(f"{_nom}\nRMSE test {rmse(_m, poly_Xte, poly_yte):.2f}", fontsize=10.5, pad=8)
         _ax2.set_xticks(_degres); _ax2.set_xlabel("degré du terme", fontsize=10)
         _ax2.set_xlim(0.4, poly_max_degree + 0.6); _ax2.set_ylim(-_wm, _wm)
         _ax2.grid(axis="y", color="#edf2f7", lw=0.8, zorder=0)
@@ -702,6 +885,18 @@ def _(mo):
     ---
 
     ## D. Régression Elastic Net
+
+    La régression Elastic Net est un compromis entre Ridge et Lasso : le terme de pénalisation qu'elle introduit est une combinaison convexe des termes de pénalisation des deux autres.
+
+    $$J(\boldsymbol{\theta}) = \mathrm{MSE}(\boldsymbol{\theta}) + r \left( 2\alpha \sum_{i=1}^{n} |\theta_i| \right) + (1 - r) \left( \frac{\alpha}{m} \sum_{i=1}^{n} \theta_i^2 \right) = \mathrm{MSE}(\boldsymbol{\theta}) + 2r\alpha \|\mathbf{w}\|_1 + (1 - r)\frac{\alpha}{m} \|\mathbf{w}\|_2^2$$
+
+    ### Visualisation
+
+    On reprend la même visualisation déjà tracée deux fois.
+
+    Par rapport à Lasso :
+    1. L'erreur sur le test set est un peu moins bonne : augmentation de $0.003$
+    2. Davantage d'overfitting : augmentation de l'écart de généralisation de $0.02$
     """)
     return
 
@@ -716,9 +911,51 @@ def _(ElasticNet, courbe_regularisation, np, violet):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    ### Implémentation
+
+    L'implémentation d'Elastic Net avec Scikit est très similaire à celle de la régression Ridge.
+    """)
+    return
+
+
+@app.cell
+def _(ElasticNet, X, y):
+    elastic_net = ElasticNet(alpha=0.1, l1_ratio=0.5)
+    _ = elastic_net.fit(X, y)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Version fine-tuning intégré de $\alpha$ et $r$ par validation croisée :
+    """)
+    return
+
+
+@app.cell
+def _(ElasticNetCV, X, np, y):
+    elasticnetcv_reg = ElasticNetCV(l1_ratio=np.linspace(0.1, 0.9, 9), alphas=np.logspace(-3, 3, 100))
+    _ = elasticnetcv_reg.fit(X, y.ravel())
+
+    print(f"alpha choisi par ElasticNetCV : {elasticnetcv_reg.alpha_:.4f}")
+    print(f"r choisi par ElasticNetCV : {elasticnetcv_reg.l1_ratio_:.4f}")
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ---
 
-    ## E. Apprentissage ensembliste
+    ## E. Comparatif des méthodes de régularisation
+
+    | Méthode | Pénalisation | Effet principal | Annule des coefficients ? | Cas d'usage privilégié | Contraintes |
+    |:-|:-:|:-|:-:|:-|:-|
+    |**Régression linéaire**|Aucune|Ajuste uniquement les données|Non|Données simples, peu de risque d'overfitting|Surapprentissage fréquent|
+    |**Ridge**|$\ell_2$|Réduit tous les coefficients de façon progressive|Non|**Choix par défaut** ; variables nombreuses ou corrélées|Ne réalise pas de sélection de variables|
+    |**Lasso**|$\ell_1$|Réduit les coefficients et peut les annuler|Oui|Peu de variables réellement utiles ; sélection automatique de features|Peut être instable si les variables sont fortement corrélées ou si $n>m$|
+    |**Elastic Net**|$\ell_1+\ell_2$|Combine réduction des coefficients et sélection de variables|Oui|Variables corrélées tout en souhaitant effectuer une sélection|Hyperparamètre supplémentaire (`l1_ratio`) à régler|
     """)
     return
 
