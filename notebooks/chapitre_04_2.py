@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.23.8"
+__generated_with = "0.23.5"
 app = marimo.App(width="medium")
 
 
@@ -33,6 +33,7 @@ def _():
     from sklearn.pipeline import make_pipeline
     from sklearn.metrics import mean_squared_error
     from sklearn.model_selection import cross_val_score, RepeatedKFold
+    from copy import deepcopy
 
     def make_poly_pipe(model, degree):
         return make_pipeline(PolynomialFeatures(degree, include_bias=False), StandardScaler(), model)
@@ -58,9 +59,12 @@ def _():
         Ridge,
         RidgeCV,
         SGDRegressor,
+        StandardScaler,
         bleu,
         cross_val_score,
+        deepcopy,
         gris,
+        make_pipeline,
         make_poly_pipe,
         mo,
         np,
@@ -862,11 +866,11 @@ def _(mo):
     * il choisit parfois arbitrairement un terme plutôt qu'un autre (essayez en imposant $\alpha_2 = 0,05$)
     * de petites variations des données peuvent modifier la sélection
 
-    C'est une des raisons pour lesquelles on préfère souvent Ridge pour les bases polynomiales.
+    C'est une des raisons pour lesquelles **on préfère souvent Ridge pour les bases polynomiales**.
 
     ### Faut-il cesser de plafonner le choix du degré ?
 
-    Non. Même lorsqu'on utilise Ridge ou Lasso, on limite généralement le degré maximal pour des raisons qu'on connaît bien :
+    Non. Même lorsqu'on utilise Ridge ou Lasso, on **limite généralement le degré maximal** pour des raisons qu'on connaît bien :
 
     1. Explosion combinatoire : on rappelle qu'en notant $d$ le degré maximum fixé et $n$ le nombre initial de prédicteurs, un appel à `PolynomialFeatures` crée exactement $\frac{\left(n+d\right)!}{n! \ d!}$ features.
     2. Instabilité : Les termes de degré élevés $x^{10}, x^{15}, x^{20}$ sont souvent très corrélés entre eux. Cela augmente :
@@ -886,7 +890,7 @@ def _(mo):
 
     ## D. Régression Elastic Net
 
-    La régression Elastic Net est un compromis entre Ridge et Lasso : le terme de pénalisation qu'elle introduit est une combinaison convexe des termes de pénalisation des deux autres.
+    La régression Elastic Net est un compromis entre Ridge et Lasso : le terme de pénalisation qu'elle introduit est une **combinaison convexe** des termes de pénalisation des deux autres.
 
     $$J(\boldsymbol{\theta}) = \mathrm{MSE}(\boldsymbol{\theta}) + r \left( 2\alpha \sum_{i=1}^{n} |\theta_i| \right) + (1 - r) \left( \frac{\alpha}{m} \sum_{i=1}^{n} \theta_i^2 \right) = \mathrm{MSE}(\boldsymbol{\theta}) + 2r\alpha \|\mathbf{w}\|_1 + (1 - r)\frac{\alpha}{m} \|\mathbf{w}\|_2^2$$
 
@@ -948,7 +952,7 @@ def _(mo):
     mo.md(r"""
     ---
 
-    ## E. Comparatif des méthodes de régularisation
+    ## E. Comparatif des méthodes de régularisation par pénalisation
 
     | Méthode | Pénalisation | Effet principal | Annule des coefficients ? | Cas d'usage privilégié | Contraintes |
     |:-|:-:|:-|:-:|:-|:-|
@@ -956,6 +960,118 @@ def _(mo):
     |**Ridge**|$\ell_2$|Réduit tous les coefficients de façon progressive|Non|**Choix par défaut** ; variables nombreuses ou corrélées|Ne réalise pas de sélection de variables|
     |**Lasso**|$\ell_1$|Réduit les coefficients et peut les annuler|Oui|Peu de variables réellement utiles ; sélection automatique de features|Peut être instable si les variables sont fortement corrélées ou si $n>m$|
     |**Elastic Net**|$\ell_1+\ell_2$|Combine réduction des coefficients et sélection de variables|Oui|Variables corrélées tout en souhaitant effectuer une sélection|Hyperparamètre supplémentaire (`l1_ratio`) à régler|
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ---
+
+    ## D. Early stopping
+
+    On présente une méthode de régularisation **sans pénalisation**. Elle s'applique aux modèles dont l'apprentissage est itératif, comme les algorithmes de régression linéaire utilisant la descente de gradient.
+
+    Le principe de l'early stopping est simple : on **cesse d'itérer** dès lors que **l'erreur de validation atteint un minimum**.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(np, plt, train_errors, val_errors):
+    _best_epoch = int(np.argmin(val_errors))
+    _best_valid_rmse = val_errors[_best_epoch]
+    _n_epochs = len(val_errors)
+
+    plt.figure(figsize=(6, 4))
+    plt.annotate("Meilleur modèle",
+                 xy=(_best_epoch, _best_valid_rmse),
+                 xytext=(_best_epoch, _best_valid_rmse + 0.5),
+                 ha="center",
+                 arrowprops=dict(facecolor="black", shrink=0.05))
+    plt.plot([0, _n_epochs], [_best_valid_rmse, _best_valid_rmse], "k:", linewidth=2)
+    plt.plot(val_errors, "b-", linewidth=3, label="Validation set")
+    plt.plot(_best_epoch, _best_valid_rmse, "bo")
+    plt.plot(train_errors, "r--", linewidth=2, label="Training set")
+    plt.legend(loc="upper right")
+    plt.xlabel("Époques")
+    plt.ylabel("RMSE")
+    plt.axis([0, _n_epochs, 0, 3.5])
+    plt.grid()
+
+    plt.show()
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### Descente double
+
+    Il arrive que l'erreur de validation atteigne un premier minimum, puis augmente avant de redescendre jusqu'à une valeur inférieure à ce premier minimum. S'arrêter systématiquement au premier minimum peut donc conduire à des configurations sous-optimales.
+
+    Ce phénomène, fréquent lors de l'entraînement des réseaux de neurones, est appelé **double descent**.
+
+    Un bon moyen de s'en affranchir consiste à entraîner le modèle un grand nombre d'époques, et à ne garder ultimement que la version associée à la **plus faible erreur de validation**. Cela nécessite d'enregistrer régulièrement l'état du modèle, ce que l'on fait avec `deepcopy()` dans l'implémentation ci-dessous.
+
+    > Cette implémentation **avec mémoire** se montre également utile dans le cas de descentes stochastiques ou mini-batch, pour lesquelles il est souvent difficile d'identifier un minimum, la courbe de l'erreur d'entraînement étant généralement très irrégulière.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(np):
+    _rng = np.random.default_rng(seed=42)
+    _m = 200
+    _X = 6 * _rng.random((_m, 1)) - 3
+    _y = 0.5 * _X ** 2 + _X + 2 + _rng.standard_normal((_m, 1))
+    X_train, y_train = _X[: _m // 2], _y[: _m // 2, 0]
+    X_valid, y_valid = _X[_m // 2 :], _y[_m // 2 :, 0]
+    return X_train, X_valid, y_train, y_valid
+
+
+@app.cell
+def _(
+    PolynomialFeatures,
+    SGDRegressor,
+    StandardScaler,
+    X_train,
+    X_valid,
+    deepcopy,
+    make_pipeline,
+    rmse,
+    y_train,
+    y_valid,
+):
+    _preprocessing = make_pipeline(PolynomialFeatures(degree=90, include_bias=False), StandardScaler())
+    _X_train_prep = _preprocessing.fit_transform(X_train)
+    _X_valid_prep = _preprocessing.transform(X_valid)
+    _sgd_reg = SGDRegressor(penalty=None, eta0=0.002, random_state=42)
+    _n_epochs = 500
+    _best_valid_rmse = float("inf")
+
+    train_errors, val_errors = [], []
+    best_model = deepcopy(_sgd_reg)
+
+    for _epoch in range(_n_epochs):
+        _sgd_reg.partial_fit(_X_train_prep, y_train)
+        _val_error = rmse(_sgd_reg, _X_valid_prep, y_valid)
+        if _val_error < _best_valid_rmse:
+            _best_valid_rmse = _val_error
+            best_model = deepcopy(_sgd_reg)
+        _train_error = rmse(_sgd_reg, _X_train_prep, y_train)
+        val_errors.append(_val_error)
+        train_errors.append(_train_error)
+    return train_errors, val_errors
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### Le lien avec Ridge
+
+    [insérer éventuellement une section mathématique ici]
     """)
     return
 
