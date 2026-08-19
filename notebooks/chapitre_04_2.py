@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.23.5"
+__generated_with = "0.24.0"
 app = marimo.App(width="medium")
 
 
@@ -24,19 +24,30 @@ def _(mo):
 
 @app.cell(hide_code=True)
 def _():
-    import marimo as mo
-    import numpy as np
-    import matplotlib.pyplot as plt
-
-    from sklearn.preprocessing import PolynomialFeatures, StandardScaler
-    from sklearn.linear_model import LinearRegression, Ridge, Lasso, ElasticNet, SGDRegressor, RidgeCV, LassoCV, ElasticNetCV
-    from sklearn.pipeline import make_pipeline
-    from sklearn.metrics import mean_squared_error
-    from sklearn.model_selection import cross_val_score, RepeatedKFold
     from copy import deepcopy
 
+    import marimo as mo
+    import matplotlib.pyplot as plt
+    import numpy as np
+    from sklearn.linear_model import (
+        ElasticNet,
+        ElasticNetCV,
+        Lasso,
+        LassoCV,
+        LinearRegression,
+        Ridge,
+        RidgeCV,
+        SGDRegressor,
+    )
+    from sklearn.metrics import mean_squared_error
+    from sklearn.model_selection import RepeatedKFold, cross_val_score
+    from sklearn.pipeline import make_pipeline
+    from sklearn.preprocessing import PolynomialFeatures, StandardScaler
+
     def make_poly_pipe(model, degree):
-        return make_pipeline(PolynomialFeatures(degree, include_bias=False), StandardScaler(), model)
+        return make_pipeline(
+            PolynomialFeatures(degree, include_bias=False), StandardScaler(), model
+        )
 
     def rmse(model, X, y):
         return np.sqrt(mean_squared_error(y, model.predict(X)))
@@ -138,39 +149,68 @@ def _(
     rouge,
 ):
     def courbe_regularisation(make_model, alphas, couleur, nom):
-        _cv_split = RepeatedKFold(n_splits=5, n_repeats=30, random_state=42) 
+        _cv_split = RepeatedKFold(n_splits=5, n_repeats=30, random_state=42)
         _train, _test, _cv = [], [], []
         for _a in alphas:
             _pipe = make_poly_pipe(make_model(_a), poly_max_degree)
-            _cv.append(-cross_val_score(_pipe, poly_X, poly_y, cv=_cv_split,
-                                        scoring="neg_root_mean_squared_error").mean())
+            _cv.append(
+                -cross_val_score(
+                    _pipe,
+                    poly_X,
+                    poly_y,
+                    cv=_cv_split,
+                    scoring="neg_root_mean_squared_error",
+                ).mean()
+            )
             _pipe.fit(poly_X, poly_y)
             _train.append(rmse(_pipe, poly_X, poly_y))
             _test.append(rmse(_pipe, poly_Xte, poly_yte))
         _train, _test = np.array(_train), np.array(_test)
-        _ibest = int(np.argmin(_cv))        
+        _ibest = int(np.argmin(_cv))
         _a_best, _test_best = alphas[_ibest], _test[_ibest]
 
         _train_best = _train[_ibest]
-        _gap = _test_best - _train_best  
-        _gap0 = poly_rmse_ols[1] - poly_rmse_ols[0]   
+        _gap = _test_best - _train_best
+        _gap0 = poly_rmse_ols[1] - poly_rmse_ols[0]
 
         _fig, _ax = plt.subplots(figsize=(8.5, 4.6))
-        _ax.fill_between(alphas, _train, _test, color=couleur, alpha=0.12,
-                         label="écart train/test = overfitting")
+        _ax.fill_between(
+            alphas,
+            _train,
+            _test,
+            color=couleur,
+            alpha=0.12,
+            label="écart train/test = overfitting",
+        )
         _ax.plot(alphas, _train, "-", color=rouge, lw=2.2, label="RMSE entraînement")
-        _ax.plot(alphas, _test,  "-", color=bleu,  lw=2.4, label="RMSE test")
-        _ax.axhline(poly_rmse_oracle, color=gris, ls="--", lw=1.3, label="oracle (vrai degré 3)")
+        _ax.plot(alphas, _test, "-", color=bleu, lw=2.4, label="RMSE test")
+        _ax.axhline(
+            poly_rmse_oracle, color=gris, ls="--", lw=1.3, label="oracle (vrai degré 3)"
+        )
         _ax.axvline(_a_best, color=couleur, lw=1.4, ls=":")
-        _ax.scatter([_a_best], [_test_best], s=75, color=couleur, ec="white", lw=0.8,
-                    zorder=6, label=fr"$\alpha$ choisi par CV = {_a_best:.3g}")
+        _ax.scatter(
+            [_a_best],
+            [_test_best],
+            s=75,
+            color=couleur,
+            ec="white",
+            lw=0.8,
+            zorder=6,
+            label=rf"$\alpha$ choisi par CV = {_a_best:.3g}",
+        )
         _ax.set_xscale("log")
-        _ax.set_xlabel(r"$\alpha$ (échelle log)"); _ax.set_ylabel("RMSE")
-        _ax.set_title(f"RMSE test {_test_best:.3f} | "
-                      f"$\\Delta_{{\\text{{gén}}}}$ sans régularisation {_gap0:.2f} | $\\Delta_{{\\text{{gén}}}}$ Ridge {_gap:.2f}", fontsize=11.5)
+        _ax.set_xlabel(r"$\alpha$ (échelle log)")
+        _ax.set_ylabel("RMSE")
+        _ax.set_title(
+            f"RMSE test {_test_best:.3f} | "
+            f"$\\Delta_{{\\text{{gén}}}}$ sans régularisation {_gap0:.2f} | $\\Delta_{{\\text{{gén}}}}$ Ridge {_gap:.2f}",
+            fontsize=11.5,
+        )
         _ax.legend(fontsize=8, loc="upper center", framealpha=0.92)
-        for _s in ("top", "right"): _ax.spines[_s].set_visible(False)
-        _fig.tight_layout(); plt.close(_fig)
+        for _s in ("top", "right"):
+            _ax.spines[_s].set_visible(False)
+        _fig.tight_layout()
+        plt.close(_fig)
         return _fig
 
     return (courbe_regularisation,)
@@ -178,7 +218,9 @@ def _(
 
 @app.cell(hide_code=True)
 def _(Ridge, courbe_regularisation, np, vert):
-    courbe_regularisation(lambda _a: Ridge(alpha=_a), np.logspace(-3, 3, 60), vert, "Ridge")
+    courbe_regularisation(
+        lambda _a: Ridge(alpha=_a), np.logspace(-3, 3, 60), vert, "Ridge"
+    )
     return
 
 
@@ -195,7 +237,7 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(LinearRegression, Ridge, bleu, make_poly_pipe, np, plt, rouge, vert):
     _rng = np.random.default_rng(seed=42)
-    _m = 20 
+    _m = 20
     X_regularization_demo = 3 * _rng.random((_m, 1))
     y_regularization_demo = (
         1 + 0.5 * X_regularization_demo + _rng.standard_normal((_m, 1)) / 1.5
@@ -206,8 +248,14 @@ def _(LinearRegression, Ridge, bleu, make_poly_pipe, np, plt, rouge, vert):
     _ = _ridge_reg.fit(X_regularization_demo, y_regularization_demo)
 
     def _plot_model(model_class, polynomial, alphas, **model_kwargs):
-        plt.plot(X_regularization_demo, y_regularization_demo,
-                 marker=".", linestyle="none", color=bleu, linewidth=3)
+        plt.plot(
+            X_regularization_demo,
+            y_regularization_demo,
+            marker=".",
+            linestyle="none",
+            color=bleu,
+            linewidth=3,
+        )
         line_colors = (bleu, vert, rouge)
         line_styles = (":", "--", "-")
         for alpha, color, style in zip(alphas, line_colors, line_styles):
@@ -219,9 +267,14 @@ def _(LinearRegression, Ridge, bleu, make_poly_pipe, np, plt, rouge, vert):
                 model = make_poly_pipe(model, 10)
             model.fit(X_regularization_demo, y_regularization_demo)
             y_new_regul = model.predict(X_new_regularization_demo)
-            plt.plot(X_new_regularization_demo, y_new_regul,
-                     linestyle=style, color=color, linewidth=2,
-                     label=fr"$\alpha = {alpha}$")
+            plt.plot(
+                X_new_regularization_demo,
+                y_new_regul,
+                linestyle=style,
+                color=color,
+                linewidth=2,
+                label=rf"$\alpha = {alpha}$",
+            )
         plt.legend(loc="upper left")
         plt.xlabel("$x_1$")
         plt.axis([0, 3, 0, 3.5])
@@ -258,13 +311,13 @@ def _(mo):
 
     ### Implémentation
 
-    On peut implémenter la régression ridge avec une solution en** forme close** :
+    On peut implémenter la régression ridge avec une solution en** forme fermée** :
 
     $$ \hat{\boldsymbol{\theta}} = \left( \mathbf{X}^{\mathsf T}\mathbf{X} + \alpha\mathbf{D} \right)^{-1} \mathbf{X}^{\mathsf T}\mathbf{y}$$
 
     Où $\mathbf{D}$ est la matrice identité avec un 0 en haut à gauche.
 
-    /// details | Solution en forme close - démonstration (pour aller plus loin)
+    /// details | Solution en forme fermée - démonstration (pour aller plus loin)
     On note $\boldsymbol{\theta} = \begin{pmatrix} \theta_0 \\ \mathbf{w} \end{pmatrix}$ et $\mathbf{h} = \begin{pmatrix} h_0 \\ \mathbf{h}_{\mathbf{w}} \end{pmatrix}$. On rappelle l'expression de la fonction de perte : $J(\boldsymbol{\theta}) = \frac{1}{m} \lVert \mathbf{X}\boldsymbol{\theta} - \mathbf{y} \rVert_2^2 + \frac{\alpha}{m} \lVert \mathbf{w} \rVert_2^2$
 
     On obtient l'expression de $\nabla J(\boldsymbol{\theta})$ en passant par le développement de Taylor à l'ordre 1. On identifie ensuite le gradient via un produit scalaire :
@@ -301,7 +354,7 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(np):
     rng = np.random.default_rng(seed=42)
-    m = 20 
+    m = 20
     X = 3 * rng.random((m, 1))
     y = 1 + 0.5 * X + rng.standard_normal((m, 1)) / 1.5
     X_new = np.linspace(0, 3, 100).reshape(100, 1)
@@ -326,13 +379,13 @@ def _(mo):
 @app.cell
 def _(X, m, np, ridge_reg, y):
     alpha = 0.1
-    A = np.array([[0., 0.], [0., 1.]])
+    A = np.array([[0.0, 0.0], [0.0, 1.0]])
     X_b = np.c_[np.ones(m), X]
     theta = np.linalg.inv(X_b.T @ X_b + alpha * A) @ X_b.T @ y
 
     print("--- Calcul matriciel brut ---")
-    print(f"theta_0 : {theta[0,0]:.20f}")
-    print(f"theta_1 : {theta[1,0]:.20f}\n")
+    print(f"theta_0 : {theta[0, 0]:.20f}")
+    print(f"theta_1 : {theta[1, 0]:.20f}\n")
     print("--- Estimation Scikit ---")
     print(f"theta_0 : {ridge_reg.intercept_[0]:.20f}")
     print(f"theta_1 : {ridge_reg.coef_[0]:.20f}")
@@ -351,8 +404,15 @@ def _(mo):
 
 @app.cell
 def _(SGDRegressor, X, m, y):
-    sgd_reg = SGDRegressor(penalty="l2", alpha=2*0.1 / m, tol=None, max_iter=1000, eta0=0.01, random_state=42)
-    _ = sgd_reg.fit(X, y.ravel()) 
+    sgd_reg = SGDRegressor(
+        penalty="l2",
+        alpha=2 * 0.1 / m,
+        tol=None,
+        max_iter=1000,
+        eta0=0.01,
+        random_state=42,
+    )
+    _ = sgd_reg.fit(X, y.ravel())
     return
 
 
@@ -442,8 +502,11 @@ def _(np, plt):
     def bgd_path(theta, X, y, l1, l2, core=1, eta=0.05, n_iterations=200):
         path = [theta]
         for iteration in range(n_iterations):
-            gradients = (core * 2 / len(X) * X.T @ (X @ theta - y)
-                         + l1 * np.sign(theta) + l2 * theta)
+            gradients = (
+                core * 2 / len(X) * X.T @ (X @ theta - y)
+                + l1 * np.sign(theta)
+                + l2 * theta
+            )
             theta = theta - eta * gradients
             path.append(theta)
         return np.array(path)
@@ -451,7 +514,7 @@ def _(np, plt):
     fig, axes = plt.subplots(2, 2, sharex=True, sharey=True, figsize=(9, 7))
 
     for i, N, l1, l2, title in ((0, N1, 2.0, 0, "Lasso"), (1, N2, 0, 2.0, "Ridge")):
-        JR = J + l1 * N1 + l2 * 0.5 * N2 ** 2
+        JR = J + l1 * N1 + l2 * 0.5 * N2**2
 
         tr_min_idx = np.unravel_index(JR.argmin(), JR.shape)
         t1r_min, t2r_min = t1[tr_min_idx], t2[tr_min_idx]
@@ -463,8 +526,14 @@ def _(np, plt):
 
         path_J = bgd_path(t_init, Xr, yr, l1=0, l2=0)
         path_JR = bgd_path(t_init, Xr, yr, l1, l2)
-        path_N = bgd_path(theta=np.array([[2.0], [0.5]]), X=Xr, y=yr,
-                          l1=np.sign(l1) / 3, l2=np.sign(l2), core=0)
+        path_N = bgd_path(
+            theta=np.array([[2.0], [0.5]]),
+            X=Xr,
+            y=yr,
+            l1=np.sign(l1) / 3,
+            l2=np.sign(l2),
+            core=0,
+        )
         ax = axes[i, 0]
         ax.grid()
         ax.axhline(y=0, color="k")
@@ -473,7 +542,7 @@ def _(np, plt):
         ax.plot(path_N[:, 0], path_N[:, 1], "y--")
         ax.plot(0, 0, "ys")
         ax.plot(t1_min, t2_min, "ys")
-        ax.set_title(fr"$\ell_{i + 1}$ penalty")
+        ax.set_title(rf"$\ell_{i + 1}$ penalty")
         ax.axis([t1a, t1b, t2a, t2b])
         if i == 1:
             ax.set_xlabel(r"$\theta_1$")
@@ -556,7 +625,12 @@ def _(mo):
 
 @app.cell(hide_code=True)
 def _(Lasso, courbe_regularisation, np, orange):
-    courbe_regularisation(lambda _a: Lasso(alpha=_a, max_iter=300_000), np.logspace(-3, 0.5, 60), orange, "Lasso")
+    courbe_regularisation(
+        lambda _a: Lasso(alpha=_a, max_iter=300_000),
+        np.logspace(-3, 0.5, 60),
+        orange,
+        "Lasso",
+    )
     return
 
 
@@ -589,8 +663,10 @@ def _(mo):
 
 @app.cell
 def _(SGDRegressor, X, m, y):
-    sgd_lasso_reg = SGDRegressor(penalty="l1", alpha=0.1 / m, tol=None, max_iter=1000, eta0=0.01, random_state=42)
-    _ = sgd_lasso_reg.fit(X, y.ravel()) 
+    sgd_lasso_reg = SGDRegressor(
+        penalty="l1", alpha=0.1 / m, tol=None, max_iter=1000, eta0=0.01, random_state=42
+    )
+    _ = sgd_lasso_reg.fit(X, y.ravel())
     return
 
 
@@ -645,11 +721,15 @@ def _(mo):
 def _(mo):
     alpha_ridge_slider = mo.ui.slider(
         steps=[0.01, 0.03, 0.1, 0.3, 1.0, 3.0, 10.0, 30.0],
-        value=0.03, show_value=True, label=r"$\alpha_1$ (Ridge)",
+        value=0.03,
+        show_value=True,
+        label=r"$\alpha_1$ (Ridge)",
     )
     alpha_lasso_slider = mo.ui.slider(
         steps=[0.01, 0.02, 0.05, 0.1, 0.2, 0.4, 0.8],
-        value=0.02, show_value=True, label=r"$\alpha_2$ (Lasso)",
+        value=0.02,
+        show_value=True,
+        label=r"$\alpha_2$ (Lasso)",
     )
 
     montre_vrai = mo.ui.checkbox(value=False, label="vrai polynôme")
@@ -681,7 +761,7 @@ def _(
     poly_n_train = 20
     poly_noise = 1.2
     poly_lo, poly_hi = -2.5, 2.5
-    poly_true_coefs = np.array([0.5, -1.6, -1.1, 1.0])   # 0.5 -1.6x -1.1x^2 +1.0x^3
+    poly_true_coefs = np.array([0.5, -1.6, -1.1, 1.0])  # 0.5 -1.6x -1.1x^2 +1.0x^3
 
     def f(x):
         return sum(poly_true_coefs[_k] * x**_k for _k in range(len(poly_true_coefs)))
@@ -699,12 +779,33 @@ def _(
 
     poly_model_ols = fit_poly(LinearRegression())
     poly_coefs_ols = poly_model_ols[-1].coef_
-    poly_rmse_ols = (rmse(poly_model_ols, poly_X, poly_y), rmse(poly_model_ols, poly_Xte, poly_yte))
-    poly_rmse_oracle = rmse(fit_poly(LinearRegression(), poly_ref_degree), poly_Xte, poly_yte)
+    poly_rmse_ols = (
+        rmse(poly_model_ols, poly_X, poly_y),
+        rmse(poly_model_ols, poly_Xte, poly_yte),
+    )
+    poly_rmse_oracle = rmse(
+        fit_poly(LinearRegression(), poly_ref_degree), poly_Xte, poly_yte
+    )
 
-    _sigma = PolynomialFeatures(poly_max_degree, include_bias=False).fit_transform(poly_X).std(axis=0)
-    poly_true_std = np.array([poly_true_coefs[1], poly_true_coefs[2], poly_true_coefs[3],
-                              0.0, 0.0, 0.0, 0.0]) * _sigma
+    _sigma = (
+        PolynomialFeatures(poly_max_degree, include_bias=False)
+        .fit_transform(poly_X)
+        .std(axis=0)
+    )
+    poly_true_std = (
+        np.array(
+            [
+                poly_true_coefs[1],
+                poly_true_coefs[2],
+                poly_true_coefs[3],
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+            ]
+        )
+        * _sigma
+    )
 
     poly_wmax_ols = 1.1 * np.abs(poly_coefs_ols).max()
     poly_wmax_reg = 1.15 * max(
@@ -769,39 +870,75 @@ def _(
     vert,
 ):
     _courbes = [
-        (montre_vrai.value,  None,            "#1a202c", "vrai polynôme (deg 3)", "--"),
-        (montre_ols.value,   poly_model_ols,  rouge,    "sans pénalité",          "-"),
-        (montre_ridge.value, poly_ridge,      vert,      f"Ridge ($\\alpha_1$={aR:g})", "-"),
-        (montre_lasso.value, poly_lasso,      orange,    f"Lasso ($\\alpha_2$={aL:g})", "-"),
+        (montre_vrai.value, None, "#1a202c", "vrai polynôme (deg 3)", "--"),
+        (montre_ols.value, poly_model_ols, rouge, "sans pénalité", "-"),
+        (montre_ridge.value, poly_ridge, vert, f"Ridge ($\\alpha_1$={aR:g})", "-"),
+        (montre_lasso.value, poly_lasso, orange, f"Lasso ($\\alpha_2$={aL:g})", "-"),
     ]
 
     _fig1, _ax = plt.subplots(figsize=(8.5, 4.6))
     _gx = np.linspace(poly_lo - 0.7, poly_hi + 0.7, 500).reshape(-1, 1)
     _ax.axvspan(poly_lo, poly_hi, color=gris, alpha=0.07, zorder=0)
-    _ax.text(0.5, 0.03, "zone grisée = entraînement · au-delà = extrapolation",
-             transform=_ax.transAxes, ha="center", va="bottom", fontsize=8, color=gris)
+    _ax.text(
+        0.5,
+        0.03,
+        "zone grisée = entraînement · au-delà = extrapolation",
+        transform=_ax.transAxes,
+        ha="center",
+        va="bottom",
+        fontsize=8,
+        color=gris,
+    )
     for _visible, _m, _col, _lab, _ls in _courbes:
         if not _visible:
             continue
         if _m is None:
-            _ax.plot(_gx.ravel(), f(_gx.ravel()), _ls, color=_col, lw=1.6, label=_lab, zorder=2)
+            _ax.plot(
+                _gx.ravel(),
+                f(_gx.ravel()),
+                _ls,
+                color=_col,
+                lw=1.6,
+                label=_lab,
+                zorder=2,
+            )
         else:
-            _ax.plot(_gx, _m.predict(_gx), _ls, color=_col, lw=2.2,
-                     label=f"{_lab}", zorder=3)
-    _ax.scatter(poly_X.ravel(), poly_y, s=26, color="#2d3748", zorder=4, label=f"{poly_n_train} points")
+            _ax.plot(
+                _gx, _m.predict(_gx), _ls, color=_col, lw=2.2, label=f"{_lab}", zorder=3
+            )
+    _ax.scatter(
+        poly_X.ravel(),
+        poly_y,
+        s=26,
+        color="#2d3748",
+        zorder=4,
+        label=f"{poly_n_train} points",
+    )
     _ax.set_ylim(poly_y.min() - 10, poly_y.max() + 10)
     _ax.set_xlim(poly_lo - 0.7, poly_hi + 0.7)
-    _ax.set_xlabel("x"); _ax.set_ylabel("y")
+    _ax.set_xlabel("x")
+    _ax.set_ylabel("y")
 
     _ax.legend(fontsize=8, loc="lower right")
-    for _s in ("top", "right"): _ax.spines[_s].set_visible(False)
-    _fig1.tight_layout(); plt.close(_fig1)
+    for _s in ("top", "right"):
+        _ax.spines[_s].set_visible(False)
+    _fig1.tight_layout()
+    plt.close(_fig1)
 
-    mo.vstack([
-        mo.hstack([alpha_ridge_slider, alpha_lasso_slider], justify="center", gap=2),
-        mo.hstack([montre_vrai, montre_ols, montre_ridge, montre_lasso], justify="center", gap=1),
-        _fig1,
-    ], gap=0.8)
+    mo.vstack(
+        [
+            mo.hstack(
+                [alpha_ridge_slider, alpha_lasso_slider], justify="center", gap=2
+            ),
+            mo.hstack(
+                [montre_vrai, montre_ols, montre_ridge, montre_lasso],
+                justify="center",
+                gap=1,
+            ),
+            _fig1,
+        ],
+        gap=0.8,
+    )
     return
 
 
@@ -827,7 +964,7 @@ def _(
 ):
     _panneaux = [
         ("Régression polynomiale classique", poly_model_ols, rouge, poly_wmax_ols),
-        (f"Ridge ($\\alpha_1$={aR:g})", poly_ridge, vert,   poly_wmax_reg),
+        (f"Ridge ($\\alpha_1$={aR:g})", poly_ridge, vert, poly_wmax_reg),
         (f"Lasso ($\\alpha_2$={aL:g})", poly_lasso, orange, poly_wmax_reg),
     ]
 
@@ -836,19 +973,41 @@ def _(
     for _ax2, (_nom, _m, _col, _wm) in zip(_axes, _panneaux):
         _c = _m[-1].coef_
         _ax2.axhline(0, color="#cbd5e0", lw=1, zorder=1)
-        _ax2.bar(_degres, _c, width=0.62, color=_col, zorder=3, edgecolor="white", linewidth=0.6)
+        _ax2.bar(
+            _degres,
+            _c,
+            width=0.62,
+            color=_col,
+            zorder=3,
+            edgecolor="white",
+            linewidth=0.6,
+        )
         for _d, _tv in zip(_degres, poly_true_std):
-            _ax2.plot([_d - 0.34, _d + 0.34], [_tv, _tv], color="black", lw=2.4, zorder=6,
-                      solid_capstyle="round")
-        _ax2.set_title(f"{_nom}\nRMSE test {rmse(_m, poly_Xte, poly_yte):.2f}", fontsize=10.5, pad=8)
-        _ax2.set_xticks(_degres); _ax2.set_xlabel("degré du terme", fontsize=10)
-        _ax2.set_xlim(0.4, poly_max_degree + 0.6); _ax2.set_ylim(-_wm, _wm)
+            _ax2.plot(
+                [_d - 0.34, _d + 0.34],
+                [_tv, _tv],
+                color="black",
+                lw=2.4,
+                zorder=6,
+                solid_capstyle="round",
+            )
+        _ax2.set_title(
+            f"{_nom}\nRMSE test {rmse(_m, poly_Xte, poly_yte):.2f}",
+            fontsize=10.5,
+            pad=8,
+        )
+        _ax2.set_xticks(_degres)
+        _ax2.set_xlabel("degré du terme", fontsize=10)
+        _ax2.set_xlim(0.4, poly_max_degree + 0.6)
+        _ax2.set_ylim(-_wm, _wm)
         _ax2.grid(axis="y", color="#edf2f7", lw=0.8, zorder=0)
-        for _s in ("top", "right"): _ax2.spines[_s].set_visible(False)
+        for _s in ("top", "right"):
+            _ax2.spines[_s].set_visible(False)
     _axes[0].set_ylabel("poids signé (base standardisée)", fontsize=10)
     _axes[0].plot([], [], color="black", lw=2.4, label="vrai poids")
     _axes[0].legend(fontsize=8, loc="upper left")
-    _fig2.tight_layout(); plt.close(_fig2)
+    _fig2.tight_layout()
+    plt.close(_fig2)
 
     _fig2
     return
@@ -907,8 +1066,12 @@ def _(mo):
 
 @app.cell(hide_code=True)
 def _(ElasticNet, courbe_regularisation, np, violet):
-    courbe_regularisation(lambda _a: ElasticNet(alpha=_a, l1_ratio=0.5, max_iter=300_000),
-                          np.logspace(-3, 0.5, 60), violet, "Elastic-Net")
+    courbe_regularisation(
+        lambda _a: ElasticNet(alpha=_a, l1_ratio=0.5, max_iter=300_000),
+        np.logspace(-3, 0.5, 60),
+        violet,
+        "Elastic-Net",
+    )
     return
 
 
@@ -939,7 +1102,9 @@ def _(mo):
 
 @app.cell
 def _(ElasticNetCV, X, np, y):
-    elasticnetcv_reg = ElasticNetCV(l1_ratio=np.linspace(0.1, 0.9, 9), alphas=np.logspace(-3, 3, 100))
+    elasticnetcv_reg = ElasticNetCV(
+        l1_ratio=np.linspace(0.1, 0.9, 9), alphas=np.logspace(-3, 3, 100)
+    )
     _ = elasticnetcv_reg.fit(X, y.ravel())
 
     print(f"alpha choisi par ElasticNetCV : {elasticnetcv_reg.alpha_:.4f}")
@@ -985,11 +1150,13 @@ def _(np, plt, train_errors, val_errors):
     _n_epochs = len(val_errors)
 
     plt.figure(figsize=(6, 4))
-    plt.annotate("Meilleur modèle",
-                 xy=(_best_epoch, _best_valid_rmse),
-                 xytext=(_best_epoch, _best_valid_rmse + 0.5),
-                 ha="center",
-                 arrowprops=dict(facecolor="black", shrink=0.05))
+    plt.annotate(
+        "Meilleur modèle",
+        xy=(_best_epoch, _best_valid_rmse),
+        xytext=(_best_epoch, _best_valid_rmse + 0.5),
+        ha="center",
+        arrowprops=dict(facecolor="black", shrink=0.05),
+    )
     plt.plot([0, _n_epochs], [_best_valid_rmse, _best_valid_rmse], "k:", linewidth=2)
     plt.plot(val_errors, "b-", linewidth=3, label="Validation set")
     plt.plot(_best_epoch, _best_valid_rmse, "bo")
@@ -1016,6 +1183,12 @@ def _(mo):
     Un bon moyen de s'en affranchir consiste à entraîner le modèle un grand nombre d'époques, et à ne garder ultimement que la version associée à la **plus faible erreur de validation**. Cela nécessite d'enregistrer régulièrement l'état du modèle, ce que l'on fait avec `deepcopy()` dans l'implémentation ci-dessous.
 
     > Cette implémentation **avec mémoire** se montre également utile dans le cas de descentes stochastiques ou mini-batch, pour lesquelles il est souvent difficile d'identifier un minimum, la courbe de l'erreur d'entraînement étant généralement très irrégulière.
+
+    ### Implémentation
+
+    Le code qui suit propose une implémentation simple de l'early stopping. On n'introduit pas de nouvel objet Python, sinon la méthode `partial_fit()` déjà présentée dans la première partie de ce chapitre.
+
+    La régularisation est appliquée ici à une descente de gradient stochastique (mais on aurait pu choisir une descente batch ou mini-batch) sur une régression polynomiale de degré 90.
     """)
     return
 
@@ -1025,7 +1198,7 @@ def _(np):
     _rng = np.random.default_rng(seed=42)
     _m = 200
     _X = 6 * _rng.random((_m, 1)) - 3
-    _y = 0.5 * _X ** 2 + _X + 2 + _rng.standard_normal((_m, 1))
+    _y = 0.5 * _X**2 + _X + 2 + _rng.standard_normal((_m, 1))
     X_train, y_train = _X[: _m // 2], _y[: _m // 2, 0]
     X_valid, y_valid = _X[_m // 2 :], _y[_m // 2 :, 0]
     return X_train, X_valid, y_train, y_valid
@@ -1044,23 +1217,35 @@ def _(
     y_train,
     y_valid,
 ):
-    _preprocessing = make_pipeline(PolynomialFeatures(degree=90, include_bias=False), StandardScaler())
+    _preprocessing = make_pipeline(
+        PolynomialFeatures(degree=90, include_bias=False), StandardScaler()
+    )
     _X_train_prep = _preprocessing.fit_transform(X_train)
+    # Pas de `fit()` ici : on réutilise les moyennes et écarts-types calculés sur X_train
     _X_valid_prep = _preprocessing.transform(X_valid)
+
     _sgd_reg = SGDRegressor(penalty=None, eta0=0.002, random_state=42)
     _n_epochs = 500
+    # On initialise la meilleure RMSE de validation à +∞
+    # ainsi la première vraie RMSE obtenue sera nécessairement meilleure
     _best_valid_rmse = float("inf")
 
+    # Deux listes dans lesquelles on va stocker l'évolution des erreurs
+    # c'est avec ces deux listes qu'est tracée la figure un peu plus haut
     train_errors, val_errors = [], []
     best_model = deepcopy(_sgd_reg)
 
     for _epoch in range(_n_epochs):
-        _sgd_reg.partial_fit(_X_train_prep, y_train)
-        _val_error = rmse(_sgd_reg, _X_valid_prep, y_valid)
+        _sgd_reg.partial_fit(_X_train_prep, y_train)  # On itère une seule époque
+        _val_error = rmse(
+            _sgd_reg, _X_valid_prep, y_valid
+        )  # Mesure performance actuelle sur jeu de validation
         if _val_error < _best_valid_rmse:
             _best_valid_rmse = _val_error
             best_model = deepcopy(_sgd_reg)
-        _train_error = rmse(_sgd_reg, _X_train_prep, y_train)
+        _train_error = rmse(
+            _sgd_reg, _X_train_prep, y_train
+        )  # Mesure performance actuelle sur jeu entraînement
         val_errors.append(_val_error)
         train_errors.append(_train_error)
     return train_errors, val_errors
@@ -1069,10 +1254,279 @@ def _(
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ### Le lien avec Ridge
+    # II. Régression logistique
 
-    [insérer éventuellement une section mathématique ici]
+    Après avoir étudié la régression linéaire, les différentes façons de l'implémenter, de l'évaluer et de la régulariser, on se propose maintenant d'étudier la **régression logistique**.
+
+    Comme son nom ne l'indique _pas_, la régression logistique est bien un algorithme de **classification binaire** : il sert à déterminer si une instance appartient ou non à une classe donnée.
+
+    ## A. Estimation des probabilités
+
+    Si l'on parle de régression logistique, c'est parce que le modèle repose d'abord sur une combinaison linéaire des prédicteurs.
+
+    Cette quantité pouvant prendre n'importe quelle valeur réelle, elle ne peut pas être directement interprétée comme une probabilité. On lui applique donc la **fonction logistique**, aussi appelée **sigmoïde logistique**, fonction bijective de $\mathbb{R}$ dans $\left[0,1\right]$ :
+
+    $$\sigma : t \longmapsto \frac{1}{1+\exp(-t)}$$
+
+    On note alors $\hat{p}$ la probabilité qu'une instance $\mathbf{x}$ appartienne à la classe étudiée.
+
+    $$\hat{p} = \sigma\left(\boldsymbol{\theta}^{\top}\mathbf{x}\right)$$
+
+    Le classifieur étant **binaire**, notre modèle doit renvoyer $0$ ou $1$ selon si l'instance est classée positivement ou négativement. Il suffit pour cela de fixer un seuil, par exemple $0.5$ :
+
+    $$ \hat{y} = \begin{cases} 0 & \text{si } \hat{p} < 0.5 \\ 1 & \text{si } \hat{p} \geq 0.5 \end{cases}$$
+
+    ---
+
+    ## B. Entraînement et fonction de coût
+
+    ### Principe
+
+    Il nous faut maintenant entraîner notre modèle, c'est-à-dire déterminer $\boldsymbol{\theta}$ à partir du training set.
+
+    Pour trouver un estimateur de $\boldsymbol{\theta}$, une méthode possible consiste à utiliser l'**estimateur du maximum de vraisemblance** $\hat{\boldsymbol{\theta}}_{\text{EMV}}$ :
+
+    $$\hat{\boldsymbol{\theta}}_{\text{EMV}} = \arg\max_{\boldsymbol{\theta}} \ \ln \mathcal{L}(\boldsymbol{\theta} ; \mathbf{y})$$
+
+    1. On peut alors essayer d'obtenir une **solution en forme fermée**, c'est-à-dire une expression explicite de $\hat{\boldsymbol{\theta}}_{\text{EMV}}$.
+    2. Si l'on n'y parvient pas (ce n'est pas toujours possible), on se contente d'expliciter une fonction de coût $J(\boldsymbol{\theta})$. En effet :
+
+    $$\begin{aligned} \hat{\boldsymbol{\theta}}_{\text{EMV}} &= \arg\max_{\boldsymbol{\theta}} \ \ln \mathcal{L}(\boldsymbol{\theta} ; \mathbf{y}) \\ &= \arg\min_{\boldsymbol{\theta}} \ \underbrace{-\ln \mathcal{L}(\boldsymbol{\theta} ; \mathbf{y})}_{J(\boldsymbol{\theta})} \end{aligned}$$
+
+    > Si $J(\boldsymbol{\theta})$ est convexe, la descente de gradient est d'ailleurs garantie de converger (pour un pas $\eta$ ni trop petit, ni trop grand).
+
+    ### Notations
+
+    On note, pour la $i$-ème instance du training set :
+
+    - $\mathbf{X}^{(i)}$ la variable aléatoire associée au vecteur des **attributs** (features) de la $i$-ème instance, et $\mathbf{x}^{(i)}$ sa réalisation.
+    - $Y^{(i)} \in \{0,1\}$ la variable aléatoire associée à son **étiquette** (label), et $y^{(i)}$ sa réalisation.
+    - $\hat{p}_{i}= \sigma\left(\boldsymbol{\theta}^{\top} \mathbf{x}^{(i)}\right)$ la probabilité estimée par le modèle.
+
+    > $\mathbf{X}^{(i)}$ désigne ici la variable aléatoire dont $\mathbf{x}^{(i)}$ est une réalisation, à ne pas confondre avec la matrice de conception.
+
+    ### Construction de la vraisemblance
+
+    Comment procéder ensuite ? Quelles variables aléatoires considérer ? Eh bien **pour construire la vraisemblance, on doit chercher quelle loi des données observées dépend du paramètre** $\boldsymbol{\theta}$.
+
+    /// details | Pour aller plus loin
+
+    La section précédente nous dit deux choses :
+
+    - La probabilité qu'une instance $\mathbf{x}$ appartienne à la classe étudiée vaut $\hat{p}$.
+    - $\hat{y} = \begin{cases} 0 & \text{si } \hat{p} < 0.5 \\ 1 & \text{si } \hat{p} \geq 0.5 \end{cases}$
+
+    Le second énoncé correspond à la **règle de décision** du modèle, propre aux problèmes de classification : c'est elle qui convertit une probabilité en une classe prédite.
+
+    Or la vraisemblance correspond à la probabilité que le modèle attribue aux données effectivement observées : la maximiser revient à chercher les $\boldsymbol{\theta}$ qui rendent les classes réellement observées les plus **probables**, et non ceux qui rapprochent les **prédictions** de la réalité.
+
+    C'est donc le premier énoncé, **le seul des deux à décrire une loi**, qui répond à notre question.
+
+    ///
+
+    On sait d'après la section précédente que la probabilité qu'une instance $\mathbf{x}$ appartienne à la classe étudiée vaut $\hat{p}$.
+
+    Ainsi, pour tout $i \in \llbracket 1, m \rrbracket$ :
+
+    $$\begin{cases} \mathbb{P}_{\boldsymbol{\theta}}\left(Y^{(i)} = 1 \mid \mathbf{X}^{(i)} = \mathbf{x}^{(i)}\right) &= \hat{p}_{i}\\ \mathbb{P}_{\boldsymbol{\theta}}\left(Y^{(i)} = 0 \mid \mathbf{X}^{(i)} = \mathbf{x}^{(i)}\right) &= 1 - \hat{p}_{i} \end{cases}$$
+
+    On reconnaît la loi de Bernoulli :
+
+    $$Y^{(i)} \mid \mathbf{X}^{(i)} = \mathbf{x}^{(i)}\sim \mathcal{B}\left(\hat{p}_{i}\right)$$
+
+    > Dans un souci de lisibilité, on s'affranchira par la suite de la notation conditionnelle.
+
+    En supposant les instances du training set indépendantes, les variables $Y^{(i)}$ sont conditionnellement indépendantes sachant les vecteurs d’attributs $\mathbf{x}^{(i)}$ observés. On peut donc écrire :
+
+    $$\begin{aligned} \mathcal{L}\left(\boldsymbol{\theta} ; y^{(1)},\ldots,y^{(m)} \right) &= \prod_{i=1}^{m} \mathbb{P}_{\boldsymbol{\theta}}\left(Y^{(i)} = y^{(i)} \right) \\ &= \prod_{i=1}^{m} \left(\hat{p}_{i}\right)^{y^{(i)}}\left(1-\hat{p}_{i}\right)^{1-y^{(i)}} \end{aligned}$$
+
+    Par conséquent,
+
+    $$\ln \mathcal{L}\left(\boldsymbol{\theta} ; y^{(1)},\ldots,y^{(m)} \right) =  \sum_{i=1}^{m} \left[ y^{(i)} \ln \hat{p}_{i}(\boldsymbol{\theta}) + \left(1-y^{(i)}\right) \ln\left(1 - \hat{p}_{i}(\boldsymbol{\theta})\right) \right]$$
+
+    Donc,
+
+    $$\begin{aligned} \hat{\boldsymbol{\theta}}_{\text{EMV}} &= \arg\max_{\boldsymbol{\theta}} \ \ln \mathcal{L}\left(\boldsymbol{\theta} ; y^{(1)},\ldots,y^{(m)} \right) \\ &= \arg\max_{\boldsymbol{\theta}} \ \sum_{i=1}^{m} \left[ y^{(i)} \ln \hat{p}_{i}(\boldsymbol{\theta}) + \left(1-y^{(i)}\right) \ln\left(1 - \hat{p}_{i}(\boldsymbol{\theta})\right) \right] \\ &= \arg\min_{\boldsymbol{\theta}} \ \underbrace{-\sum_{i=1}^{m} \left[ y^{(i)} \ln \hat{p}_{i}(\boldsymbol{\theta}) + \left(1-y^{(i)}\right) \ln\left(1 - \hat{p}_{i}(\boldsymbol{\theta})\right) \right]}_{J(\boldsymbol{\theta})} \end{aligned}$$
+
+    ### La log loss
+
+    On rencontre plus fréquemment cette fonction de coût sous sa forme **moyennée**, appelée **log loss**  :
+
+    $$J(\boldsymbol{\theta}) = -\frac{1}{m}\sum_{i=1}^{m} \left[ y^{(i)} \ln \hat{p}_{i}(\boldsymbol{\theta}) + \left(1-y^{(i)}\right) \ln\left(1 - \hat{p}_{i}(\boldsymbol{\theta})\right) \right]$$
+
+    Ce facteur $\frac{1}{m}$ n'est pas une nécessité mathématique : pour tout $\lambda > 0$, les fonctions $J$ et $\lambda J$ atteignent leur minimum au même endroit, donc $\hat{\boldsymbol{\theta}}_{\text{EMV}}$ est inchangé. Il s'agit d'une **convention**, mais qui a son intérêt :
+
+    1. **Comparer deux erreurs.** Moyennée, la log loss s'interprète comme une erreur **par instance**, exactement comme la MSE. Sans le $\frac{1}{m}$, l'erreur d'entraînement (somme sur $m$ instances) et l'erreur de validation (somme sur $p$ instances) ne vivraient plus sur la même échelle : ni l'écart de généralisation ni les learning curves n'auraient de sens.
+    2. **Conserver un taux d'apprentissage.** Le gradient est moyenné lui aussi. Sans cette normalisation, $\lVert \nabla J \rVert$ croîtrait proportionnellement à $m$ : un $\eta$ réglé sur un training set donné serait à re-régler dès qu'on en change la taille, et une descente stochastique (un seul terme) n'opérerait plus du tout à la même échelle qu'une descente batch ($m$ termes).
+    3. **Régulariser.** C'est l'argument déjà rencontré avec Ridge : dans une fonction de coût pénalisée, seul le **rapport** entre le terme d'ajustement et le terme de pénalisation détermine le compromis. Les deux doivent donc être normalisés de la même façon pour que $\alpha$ garde le même sens quelle que soit la taille du training set.
+
+    ---
+
+    ## C. Frontières de décision
+
+    Plusieurs datasets intégrés à `sklearn.datasets` permettent de mettre en pratique des modèles de classification  (Wine, Breast Cancer Wisconsin, Iris, ..).
+
+    On décide toutefois d'utiliser le **Palmer Penguins Dataset**, bien que non nativement intégré à `sklearn.datasets`, pour la simple et bonne raison que les manchots, c'est sympa quand même.
     """)
+    return
+
+
+@app.cell
+def _():
+    from sklearn.datasets import fetch_openml
+
+    penguins = fetch_openml(name="penguins", version=1, as_frame=True)
+    penguins.frame.head(3)
+    return (penguins,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Ce dataset concentre différentes caractéristiques (île d'origine, longueur et hauteur du bec, longueur de la nageoire, masse et sexe) de 344 manchots issues de trois espèces différentes (Adélie, Chinstrap et Gentoo).
+    """)
+    return
+
+
+@app.cell
+def _(penguins, plt):
+    y_logreg = (penguins.target == "Adelie")
+
+    plt.figure(figsize=(4, 3))
+    y_logreg.value_counts().rename(index={True: "Adélie", False: "Non Adélie"}).plot.bar(rot=0, grid=True)
+    plt.xlabel(None)
+    plt.ylabel("Nombre de manchots")
+    plt.show()
+    return (y_logreg,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    On va essayer d'entraîner un modèle capable de **prédire si un manchot est un Pygoscelis adeliae** (manchot Adélie) à partir de certaines de ses **caractéristiques physiques**.
+
+    Pour simplifier l'application pédagogique de notre modèle, on décide de s'affranchir des variables catégorielles (sexe et île d'origine).
+
+    > Si on envisageait de les laisser, il faudrait transformer l'île d'origine en variable numérique par un procédé de **one-hot encoding**, comme expliqué au chapitre 2.
+    """)
+    return
+
+
+@app.cell
+def _(penguins):
+    penguins.frame.isna().any(axis=1).sum()
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    10 instances du dataset comportent **des données manquantes** (NaN). Plutôt que de les supprimer, on décide de les **inférer** avec `KNNImputer`. Concrètement, chaque valeur manquante sera remplacée par **la moyenne des $k$ plus proches voisins**. La proximité entre instances sera calculée à partir des autres features numériques.
+
+    Toutefois, `body_mass_g` risque de peser énormément dans la notion de proximité simplement parce que ses valeurs sont numériquement beaucoup plus grandes. On résoud simplement ce problème en **standardisant les données**.
+    """)
+    return
+
+
+@app.cell
+def _(StandardScaler, make_pipeline):
+    from sklearn.impute import KNNImputer
+    from sklearn.linear_model import LogisticRegression
+
+    log_reg = make_pipeline(
+        StandardScaler(),
+        KNNImputer(
+            n_neighbors=5,         # k = 5
+            weights="uniform",     # les k voisins contribuent tous de manière égale
+            metric="nan_euclidean"),
+        LogisticRegression(random_state=42)
+    )
+    return (log_reg,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    On essaye d'abord d'entraîner notre modèle avec un seul prédicteur, par exemple la longueur du bec (`culmen_length_mm`).
+    """)
+    return
+
+
+@app.cell
+def _(log_reg, penguins, y_logreg):
+    from sklearn.model_selection import train_test_split
+
+    X_longueur_bec = penguins.data[["culmen_length_mm"]]
+
+    # Le ratio par défaut de train_test_split() est de 75% train et 25% test
+    X_train_logreg, X_test_logreg, y_train_logreg, y_test_logreg = train_test_split(
+        X_longueur_bec,
+        y_logreg,
+        test_size=0.25,
+        random_state=42,
+        stratify=y_logreg
+    )
+
+    _ = log_reg.fit(X_train_logreg, y_train_logreg)
+    return X_longueur_bec, X_train_logreg, y_train_logreg
+
+
+@app.cell(hide_code=True)
+def _(X_longueur_bec, X_train_logreg, log_reg, np, plt, y_train_logreg):
+    import pandas as pd
+
+    _feature = "culmen_length_mm"
+
+    _x_min = X_longueur_bec[_feature].min()
+    _x_max = X_longueur_bec[_feature].max()
+    _marge = 0.05 * (_x_max - _x_min)
+    _X_new = pd.DataFrame(
+        np.linspace(_x_min - _marge, _x_max + _marge, 1000),
+        columns=[_feature],
+    )
+
+    _y_proba = log_reg.predict_proba(_X_new)
+    _p_adelie = _y_proba[:, 1]
+    _x_grille = _X_new.to_numpy().ravel()
+
+    # Frontière = endroit où (p - 0.5) change de signe, quel que soit le sens de variation
+    _au_dessus = _p_adelie >= 0.5
+    _croisements = np.flatnonzero(np.diff(_au_dessus.astype(int)) != 0)
+    _frontiere = (
+        0.5 * (_x_grille[_croisements[0]] + _x_grille[_croisements[0] + 1])
+        if _croisements.size else None
+    )
+
+    # Sens de variation : +1 si P(Adélie) croît avec x, -1 si elle décroît
+    _sens = 1 if _p_adelie[-1] > _p_adelie[0] else -1
+
+    _fig, _ax = plt.subplots(figsize=(8, 3))
+    _ax.plot(_X_new, _y_proba[:, 0], "b--", linewidth=2, label="Non Adélie")
+    _ax.plot(_X_new, _p_adelie, "g-", linewidth=2, label="Adélie")
+
+    if _frontiere is not None:
+        _dx = 0.06 * (_x_max - _x_min)
+        _ax.plot([_frontiere, _frontiere], [0, 1], "k:", linewidth=2,
+                 label="Frontière de décision")
+        # La flèche verte pointe vers la zone où P(Adélie) est élevée…
+        _ax.arrow(_frontiere, 0.92, _sens * _dx, 0,
+                  head_width=0.05, head_length=_dx / 2, fc="g", ec="g")
+        # …la bleue vers la zone opposée
+        _ax.arrow(_frontiere, 0.08, -_sens * _dx, 0,
+                  head_width=0.05, head_length=_dx / 2, fc="b", ec="b")
+
+    _x_faux = X_train_logreg.loc[~y_train_logreg, _feature]
+    _x_vrai = X_train_logreg.loc[y_train_logreg, _feature]
+    _ax.plot(_x_faux, np.zeros(len(_x_faux)), "bs", alpha=0.3)
+    _ax.plot(_x_vrai, np.ones(len(_x_vrai)), "g^", alpha=0.3)
+
+    _ax.set_xlabel("Longueur du bec (mm)")   # ← libellé corrigé
+    _ax.set_ylabel("Probabilité")
+    _ax.legend(loc="center left")
+    _ax.axis([_x_min - _marge, _x_max + _marge, -0.02, 1.02])
+    _ax.grid(True)
+
+    _fig
     return
 
 
