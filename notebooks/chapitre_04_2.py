@@ -1134,7 +1134,7 @@ def _(mo):
     mo.md(r"""
     ---
 
-    ## D. Early stopping
+    ## F. Early stopping
 
     On présente une méthode de régularisation **sans pénalisation**. Elle s'applique aux modèles dont l'apprentissage est itératif, comme les algorithmes de régression linéaire utilisant la descente de gradient.
 
@@ -1364,9 +1364,10 @@ def _(mo):
 
     ## C. Frontières de décision
 
+    ### Le Palmer Penguins Dataset
     Plusieurs datasets intégrés à `sklearn.datasets` permettent de mettre en pratique des modèles de classification  (Wine, Breast Cancer Wisconsin, Iris, ..).
 
-    On décide toutefois d'utiliser le **Palmer Penguins Dataset**, bien que non nativement intégré à `sklearn.datasets`, pour la simple et bonne raison que les manchots, c'est sympa quand même.
+    On décide toutefois d'utiliser le **Palmer Penguins Dataset**, bien que non nativement intégré à `sklearn.datasets`, pour la simple et bonne raison que les manchots, c'est quand même sympa.
     """)
     return
 
@@ -1403,7 +1404,9 @@ def _(penguins, plt):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    On va essayer d'entraîner un modèle capable de **prédire si un manchot est un Pygoscelis adeliae** (manchot Adélie) à partir de certaines de ses **caractéristiques physiques**.
+    ### Préparation du modèle
+
+    On va essayer d'entraîner un modèle de régression logistique capable de **prédire si un manchot est un Pygoscelis adeliae** (manchot Adélie) à partir de certaines de ses **caractéristiques physiques**.
 
     Pour simplifier l'application pédagogique de notre modèle, on décide de s'affranchir des variables catégorielles (sexe et île d'origine).
 
@@ -1447,7 +1450,9 @@ def _(StandardScaler, make_pipeline):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    On essaye d'abord d'entraîner notre modèle avec un seul prédicteur, par exemple la longueur du bec (`culmen_length_mm`).
+    ### Régression logistique (un seul prédicteur)
+
+    On essaye d'abord d'entraîner notre modèle avec **un seul prédicteur**, par exemple la longueur du bec (`culmen_length_mm`).
     """)
     return
 
@@ -1459,7 +1464,7 @@ def _(log_reg, penguins, y_logreg):
     X_longueur_bec = penguins.data[["culmen_length_mm"]]
 
     # Le ratio par défaut de train_test_split() est de 75% train et 25% test
-    X_train_logreg, X_test_logreg, y_train_logreg, y_test_logreg = train_test_split(
+    X_train_1d, X_test_1d, y_train_1d, y_test_1d = train_test_split(
         X_longueur_bec,
         y_logreg,
         test_size=0.25,
@@ -1467,13 +1472,23 @@ def _(log_reg, penguins, y_logreg):
         stratify=y_logreg
     )
 
-    _ = log_reg.fit(X_train_logreg, y_train_logreg)
-    return X_longueur_bec, X_train_logreg, y_train_logreg
+    _ = log_reg.fit(X_train_1d, y_train_1d)
+    return X_longueur_bec, X_train_1d, train_test_split, y_train_1d
 
 
 @app.cell(hide_code=True)
-def _(X_longueur_bec, X_train_logreg, log_reg, np, plt, y_train_logreg):
+def _(
+    X_longueur_bec,
+    X_train_1d,
+    afficher_metriques,
+    log_reg,
+    np,
+    plt,
+    seuil_proba,
+    y_train_1d,
+):
     import pandas as pd
+    from matplotlib.lines import Line2D
 
     _feature = "culmen_length_mm"
 
@@ -1489,44 +1504,234 @@ def _(X_longueur_bec, X_train_logreg, log_reg, np, plt, y_train_logreg):
     _p_adelie = _y_proba[:, 1]
     _x_grille = _X_new.to_numpy().ravel()
 
-    # Frontière = endroit où (p - 0.5) change de signe, quel que soit le sens de variation
-    _au_dessus = _p_adelie >= 0.5
+    # Frontière = endroit où (p - seuil) change de signe
+    _au_dessus = _p_adelie >= seuil_proba.value
     _croisements = np.flatnonzero(np.diff(_au_dessus.astype(int)) != 0)
-    _frontiere = (
+    frontiere = (
         0.5 * (_x_grille[_croisements[0]] + _x_grille[_croisements[0] + 1])
         if _croisements.size else None
     )
 
-    # Sens de variation : +1 si P(Adélie) croît avec x, -1 si elle décroît
     _sens = 1 if _p_adelie[-1] > _p_adelie[0] else -1
+
+    # --- NOUVEAU : métriques au seuil courant, sur les points affichés ---
+    _pred = log_reg.predict_proba(X_train_1d)[:, 1] >= seuil_proba.value
+    _vrai = y_train_1d.to_numpy()
+    _vp = np.sum(_pred & _vrai)                     # vrais positifs
+    _fp = np.sum(_pred & ~_vrai)                    # faux positifs
+    _fn = np.sum(~_pred & _vrai)                    # faux négatifs
+    _precision = _vp / (_vp + _fp) if (_vp + _fp) else float("nan")
+    _rappel = _vp / (_vp + _fn) if (_vp + _fn) else float("nan")
 
     _fig, _ax = plt.subplots(figsize=(8, 3))
     _ax.plot(_X_new, _y_proba[:, 0], "b--", linewidth=2, label="Non Adélie")
     _ax.plot(_X_new, _p_adelie, "g-", linewidth=2, label="Adélie")
 
-    if _frontiere is not None:
+    if frontiere is not None:
         _dx = 0.06 * (_x_max - _x_min)
-        _ax.plot([_frontiere, _frontiere], [0, 1], "k:", linewidth=2,
+        _ax.plot([frontiere, frontiere], [0, 1], "k:", linewidth=2,
                  label="Frontière de décision")
-        # La flèche verte pointe vers la zone où P(Adélie) est élevée…
-        _ax.arrow(_frontiere, 0.92, _sens * _dx, 0,
+        _ax.arrow(frontiere, 0.92, _sens * _dx, 0,
                   head_width=0.05, head_length=_dx / 2, fc="g", ec="g")
-        # …la bleue vers la zone opposée
-        _ax.arrow(_frontiere, 0.08, -_sens * _dx, 0,
+        _ax.arrow(frontiere, 0.08, -_sens * _dx, 0,
                   head_width=0.05, head_length=_dx / 2, fc="b", ec="b")
 
-    _x_faux = X_train_logreg.loc[~y_train_logreg, _feature]
-    _x_vrai = X_train_logreg.loc[y_train_logreg, _feature]
+    _x_faux = X_train_1d.loc[~y_train_1d, _feature]
+    _x_vrai = X_train_1d.loc[y_train_1d, _feature]
     _ax.plot(_x_faux, np.zeros(len(_x_faux)), "bs", alpha=0.3)
     _ax.plot(_x_vrai, np.ones(len(_x_vrai)), "g^", alpha=0.3)
 
-    _ax.set_xlabel("Longueur du bec (mm)")   # ← libellé corrigé
+    _ax.set_xlabel("Longueur du bec (mm)")
     _ax.set_ylabel("Probabilité")
-    _ax.legend(loc="center left")
     _ax.axis([_x_min - _marge, _x_max + _marge, -0.02, 1.02])
     _ax.grid(True)
 
+    # --- NOUVEAU : légende augmentée si la case est cochée ---
+    _handles, _labels = _ax.get_legend_handles_labels()
+    if afficher_metriques.value:
+        _vide = Line2D([], [], linestyle="none")     # poignée invisible
+        _handles += [_vide, _vide]
+        _labels += [f"Précision : {_precision:.1%}", f"Rappel : {_rappel:.1%}"]
+    _ax.legend(_handles, _labels, loc="center left")
+
     _fig
+    return frontiere, pd
+
+
+@app.cell
+def _(frontiere):
+    frontiere
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    On lit sur le graphique que les manchots Adélie (triangles) ont un bec dont la longueur s'étale d'environ $32$ à $46$ mm, quand celui des autres espèces (carrés) mesure plutôt entre $41$ et $60$ mm. Les deux distributions se chevauchent : c'est précisément dans cette zone que le modèle doit trancher.
+
+    On distingue trois régimes:
+    1. En dessous de $38$ mm : le modèle attribue une probabilité élevée à la classe « Adélie ».
+    2. Au-dessus de $48$ mm : la probabilité bascule vers la classe « Non Adélie ».
+    3. Entre les deux : les deux probabilités sont comparables, le modèle est incertain.
+
+    Là où `predict_proba()` restitue $\hat p$ telle quelle, `predict()` applique **la règle de décision au seuil de 50%** : il renvoie simplement la classe la plus probable. Ainsi, un manchot dont le bec mesure $42{,}9$ mm sera classé « Adélie » avec exactement la même assurance apparente qu'un manchot à $33$ mm. La règle de décision **écrase toute l'information de confiance** contenue dans $\hat p$
+
+    ### Du modèle à la réalité métier
+
+    « _La règle de décision écrase toute l'information de confiance contenue dans $\hat p$._ »
+
+    Il y a donc un fort enjeu à la régler correctement et à le faire **à la lumière des enjeux métier **: un faux négatif en dépistage médical ne coûte pas ce que coûte un faux positif. C'est exactement le **compromis précision/recall** du chapitre 3.
+
+    Le slider ci-dessous déplace la frontière de décision tracée plus haut.. Il permet de changer le seuil de probabilité à partir duquel une instance est classée positivement. Il était initialement fixé à 50%.
+    """)
+    return
+
+
+@app.cell
+def _(mo):
+    seuil_proba = mo.ui.slider(start=0, stop=1, step=0.001, value=0.500, label=r"Règle de décision (probabilité)")
+
+    afficher_metriques = mo.ui.checkbox(value=False, label="Afficher précision et rappel")
+
+    mo.vstack([seuil_proba, afficher_metriques])
+    return afficher_metriques, seuil_proba
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### Précision, recall et F1-score
+
+    Le chapitre 3 détaille la difficulté d'évaluer les performances des modèles de classification. On décide ici d'implémenter une méthode (parmi d'autres !) pour optimiser le seuil de décision.
+
+    Quelques rappels sur les métriques d'évaluation des classifieurs :
+
+    - La précision d'un classifieur quantifie la proportion de **prédictions positives correctes**.
+    - Le recall quantifie la proportion d'**instances positives** qui sont **classées comme telles** par le modèle.
+    - Le F1-score correspond à la **moyenne harmonique **de la précision et du recall
+
+    Le code suivant entraîne l'estimateur `TunedThresholdClassifierCV` par validation croisée. Il traite le seuil de décision comme un hyperparamètre pour maximiser le F1-score.
+
+    > À défaut de pouvoir maximiser simultanément précision et recall et en l'absence d'exigences métier évidentes (dépistage médical par exemple), on se contente souvent de maximiser le F1-score.
+    """)
+    return
+
+
+@app.cell
+def _(X_train_1d, log_reg, y_train_1d):
+    from sklearn.model_selection import TunedThresholdClassifierCV
+    from sklearn.metrics import f1_score
+
+    tuned_log_reg = TunedThresholdClassifierCV(log_reg, scoring="f1")
+    _ = tuned_log_reg.fit(X_train_1d, y_train_1d)
+
+    print(f"Seuil choisi par validation croisée (F1) : {tuned_log_reg.best_threshold_:.4f}")
+    print(f"F1-score correspondant : {tuned_log_reg.best_score_:.4f}")
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    > NB : `seuil_proba` n'est pas un hyperparamètre à strictement parler. En effet, `predict()` applique la règle de décision au seuil de 50%, et ce seuil n'est pas nativement modifiable ; on est obligé de le faire manuellement. `TunedThresholdClassifierCV` n'est pas donc pas un fine-tuner classique et doit recréer en interne ce paramètre. C'est pourquoi le code ci-dessus ne précise pas la localisation d'un hyper-paramètre dans la pipeline, comme on l'avait fait au chapitre 2.
+
+    ### Régression logistique (deux prédicteurs)
+
+    On entraîne maintenant notre modèle avec **deux prédicteurs** : la longueur du bec (`culmen_length_mm`) et sa profondeur (`culmen_depth_mm`).
+
+    Le code est sensiblement le même.
+    """)
+    return
+
+
+@app.cell
+def _(log_reg, penguins, train_test_split, y_logreg):
+    import copy
+
+    X_2d = penguins.data[["culmen_length_mm", "culmen_depth_mm"]]
+
+    X_train_2d, X_test_2d, y_train_2d, y_test_2d = train_test_split(
+        X_2d,
+        y_logreg,
+        test_size=0.25,
+        random_state=42,
+        stratify=y_logreg
+    )
+
+    log_reg_2 = copy.deepcopy(log_reg)
+    _ = log_reg_2.fit(X_train_2d, y_train_2d)
+    return X_2d, X_train_2d, log_reg_2, y_train_2d
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Sur la figure ci-dessous, la ligne noire en pointillés marque les points où le modèle estime $\hat p = 0{,}5$ : c'est la frontière de décision.
+
+    > La frontière de décision est linéaire. C'est logique, $\{\mathbf x : \boldsymbol\theta^\top\mathbf x = 0\}$ est une droite dans le plan (longueur du bec, hauteur du bec).
+
+    Chacune des lignes parallèles représente les points où le modèle affiche une probabilité donnée, de $0.90$  à $0.15$. Tous les manchots situés au-delà de la ligne $0.90$ ont, selon le modèle, plus de $90\%$ de chances d'être des Adélie.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(X_2d, X_train_2d, log_reg_2, np, pd, plt, y_train_2d):
+    _feature_x, _feature_y = "culmen_length_mm", "culmen_depth_mm"
+
+    _x_min, _x_max = X_2d[_feature_x].min(), X_2d[_feature_x].max()
+    _y_min, _y_max = X_2d[_feature_y].min(), X_2d[_feature_y].max()
+    _marge_x = 0.05 * (_x_max - _x_min)
+    _marge_y = 0.05 * (_y_max - _y_min)
+
+    _x0, _x1 = np.meshgrid(
+        np.linspace(_x_min - _marge_x, _x_max + _marge_x, 300),
+        np.linspace(_y_min - _marge_y, _y_max + _marge_y, 300),
+    )
+    _X_new = pd.DataFrame(
+        np.c_[_x0.ravel(), _x1.ravel()], columns=[_feature_x, _feature_y]
+    )
+
+    _y_proba = log_reg_2.predict_proba(_X_new)
+    _zz = _y_proba[:, 1].reshape(_x0.shape)
+
+    _fig, _ax = plt.subplots(figsize=(10, 4))
+    _x_faux = X_train_2d.loc[~y_train_2d]
+    _x_vrai = X_train_2d.loc[y_train_2d]
+    _ax.plot(_x_faux[_feature_x], _x_faux[_feature_y], "bs")
+    _ax.plot(_x_vrai[_feature_x], _x_vrai[_feature_y], "g^")
+
+    _contour = _ax.contour(_x0, _x1, _zz, cmap=plt.cm.brg)
+    _ax.clabel(_contour, inline=1)
+
+    _ax.contour(_x0, _x1, _zz, levels=[0.5], colors="k", linestyles="--", linewidths=3)
+
+    _ax.text(
+        _x_min + 0.05 * (_x_max - _x_min), _y_min + 0.5 * (_y_max - _y_min),
+        "Adélie", color="g", ha="center",
+    )
+    _ax.text(
+        _x_max - 0.15 * (_x_max - _x_min), _y_max - 0.45 * (_y_max - _y_min),
+        "Non Adélie", color="b", ha="center",
+    )
+    _ax.set_xlabel("Longueur du bec (mm)")
+    _ax.set_ylabel("Hauteur du bec (mm)")
+    _ax.axis([_x_min - _marge_x, _x_max + _marge_x, _y_min - _marge_y, _y_max + _marge_y])
+    _ax.grid()
+
+    _fig
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### Régularisation
+
+    Comme les autres modèles linéaires, la régression logistique peut être régularisée avec une pénalité $\ell_1$ ou $\ell_2$. Scikit-Learn ajoute par défaut une pénalité $\ell_2$.
+
+    L'hyperparamètre qui contrôle la force de régularisation d'une telle `LogisticRegression` Scikit-Learn n'est pas $\alpha$ (comme pour les autres modèles linéaires), mais **son inverse** : $C$. Plus la valeur de $C$ est élevée, moins le modèle est régularisé.
+    """)
     return
 
 
