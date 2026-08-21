@@ -1587,7 +1587,7 @@ def _(mo):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     seuil_proba = mo.ui.slider(start=0, stop=1, step=0.001, value=0.500, label=r"Règle de décision (probabilité)")
 
@@ -1731,6 +1731,175 @@ def _(mo):
     Comme les autres modèles linéaires, la régression logistique peut être régularisée avec une pénalité $\ell_1$ ou $\ell_2$. Scikit-Learn ajoute par défaut une pénalité $\ell_2$.
 
     L'hyperparamètre qui contrôle la force de régularisation d'une telle `LogisticRegression` Scikit-Learn n'est pas $\alpha$ (comme pour les autres modèles linéaires), mais **son inverse** : $C$. Plus la valeur de $C$ est élevée, moins le modèle est régularisé.
+
+    ---
+
+    ## D. Régression softmax
+
+    ### Contexte
+
+    Le modèle de régression logistique, qui est un classifieur binaire, peut être généralisé pour devenir un classifieur multi-classes. On parle alors de régression logistique multinomiale, ou de **régression softmax**.
+
+    > Attention ! Un classifieur multiclasse prédit une seule classe à la fois, ce n'est pas un classifieur multi-label. Il doit donc être déployé dans un contexte où les classes sont mutuellement exclusives.
+
+    ### Principe de fonctionnement
+
+    On considère un problème de classification avec $K$ classes différentes.
+
+    Pour une instance $\mathbf{x}$, la régression softmax calcule **sa probabilité d'appartenance à chaque classe** : $\hat{p}_{1}(\mathbf{x})$, $\hat{p}_{2}(\mathbf{x})$, .., $\hat{p}_{K}(\mathbf{x})$. On a donc :
+
+    $$\sum_{k=1}^{K}{\hat{p}_{k}(\mathbf{x})} = 1$$
+
+    Comme avec la régression logistique, ces probabilités correspondent à l'image d'un produit scalaire par une fonction $\sigma_k$ :
+
+    $$\hat{p}_k(\mathbf{x} ; \boldsymbol{\Theta}) = \sigma_k\left({\mathbf{x}}^{\top} \boldsymbol{\theta}^{(k)}\right)$$
+
+    > Puisqu'il y autant de vecteurs de paramètres $\boldsymbol{\theta}^{(j)}$ qu'il y a de classes, on les combine généralement dans une matrice $\boldsymbol{\Theta}$ sous forme de vecteur lignes.
+
+    La classe prédite est celle associée à la probabilité la plus haute :
+
+    $$\hat{y} = \underset{k}{\arg\max}\; \hat{p}_{k}(\mathbf{x})$$
+
+    ### Fonction softmax
+
+    La régression logistique mobilisait la **fonction logistique** :
+
+    $$\sigma : t \longmapsto \frac{1}{1+\exp(-t)}$$
+
+    La régression softmax, qui utilise la **fonction softmax**, fait les choses un peu différement.
+
+    1. Cette fonction que l'on applique dépend elle-même de la classe d'indice $k$ dont on estime la probabilité d'appartenance. On la note donc plus volontiers $\sigma_k$.
+
+    2. Puisque les probabilités d'appartenance doivent sommer à 1, cette fonction dépend également des autres _scores_ $s_j(\mathbf{x})={\mathbf{x}}^{\top} \boldsymbol{\theta}^{(j)}$ (pas seulement celui de la classe d'indice $k$).
+
+    Son expression est la suivante :
+
+    $$\hat{p}_k = \sigma_k(\mathbf{x} ; \boldsymbol{\Theta}) = \frac{\exp({\mathbf{x}}^{\top} \boldsymbol{\theta}^{(k)})}{\sum_{j=1}^{K}\exp({\mathbf{x}}^{\top} \boldsymbol{\theta}^{(j)})}$$
+
+    ### Log-odds
+
+    On retrouve souvent la notation $s_k(\mathbf{x})={\mathbf{x}}^{\top} \boldsymbol{\theta}^{(k)}$. Ces scores $s_k$ sont appelés **logits**. Les probabilités $\hat{p}_k$ deviennent alors :
+
+    $$\hat{p}_k = \sigma_k(\mathbf{s}(\mathbf{x})) = \frac{\exp(s_k)} {\sum_{j=1}^K\exp(s_j)}$$
+
+    C'est la façon **rigoureuse** de définir $\sigma_k$.
+
+    > Puisqu'il y autant de scores $s_k(\mathbf{x})$ qu'il y a de classes, on les combine généralement dans un vecteur $\mathbf{s}(\mathbf{x})$.
+
+    /// details | Genèse du softmax (pour aller plus loin)
+
+    Dans le contexte de la régression logistique classique, on avait justifié le choix de la fonction logistique avec l'argument qu'elle effectuait une bijection de $\mathbb{R}$ dans $]0,1[$.
+
+    En réalité, l'idée fondamentale de la régression logistique, c'est que les logarithmes des rapports de probabilités d'appartenances aux classes doivent dépendre linéairement des prédicteurs.
+
+    Ce principe suffit à construire la fonction softmax et la fonction logistique :
+
+    $$\ln\left( \frac{p_k(\mathbf x)} {p_j(\mathbf x)} \right) = \mathbf x^\top \left( \theta^{(k)}-\theta^{(j)} \right).$$
+
+    En posant $s_k(\mathbf x)=\mathbf x^\top\theta^{(k)}$, on obtient :
+
+    $$\ln\left(\frac{p_k}{p_j}\right)=s_k-s_j.$$
+
+    Donc :
+
+    $$\frac{p_k}{p_j} = e^{s_k-s_j} = \frac{e^{s_k}}{e^{s_j}}.$$
+
+    Les probabilités doivent donc être proportionnelles à $e^{s_k}$. On peut écrire :
+
+    $$p_k=\lambda e^{s_k}$$
+
+    Or :
+
+    $$\sum_{k=1}^K p_k = 1.$$
+
+    Donc :
+
+    $$\lambda \sum_{k=1}^K e^{s_k} = 1$$
+
+    et ainsi :
+
+    $$\lambda = \frac{1}{\sum_{j=1}^K e^{s_j}}.$$
+
+    Finalement :
+
+    $$p_k = \frac{e^{s_k}}{\sum_{j=1}^K e^{s_j}}$$
+
+    Et voilà la softmax. On peut même montrer que la fonction logistique en est un cas particulier.
+
+    Dans le cadre de la régression logistique on a $K=2$ classes :
+
+    $$p_1 = \frac{e^{s_1}}{e^{s_1}+e^{s_2}}= \frac{1}{1+e^{s_2-s_1}} = \frac{1}{1+e^{-(s_1-s_2)}}$$
+
+    Et puisque $s_1-s_2 = \mathbf x^\top (\theta^{(1)}-\theta^{(2)})$, on retrouve exactement une régression logistique en posant $\theta=\theta^{(1)}-\theta^{(2)}$ .
+
+    ///
+
+    ### Cross-entropy
+
+    La loi probabiliste du modèle ayant changé (par rapport à la régression logistique), il est fort probable que l'estimateur du maximum de vraisemblance conduise à définir une fonction de coût différente. C'est ce que l'on va essayer de démontrer.
+
+    On rappelle la définition de l'EMV, et son lien avec la fonction de coût.
+
+    $$\begin{aligned} \hat{\boldsymbol{\theta}}_{\text{EMV}} &= \arg\max_{\boldsymbol{\theta}} \ \ln \mathcal{L}(\boldsymbol{\theta} ; \mathbf{y}) \\ &= \arg\min_{\boldsymbol{\theta}} \ \underbrace{-\ln \mathcal{L}(\boldsymbol{\theta} ; \mathbf{y})}_{J(\boldsymbol{\theta})} \end{aligned}$$
+
+    Pour calculer la vraisemblance, on doit chercher **quelle loi des données observées dépend du paramètre** $\boldsymbol{\Theta}$.
+
+    Dans la démonstration précédente, on avait noté « $Y^{(i)} \in \{0,1\}$ la variable aléatoire associée à son étiquette, et $y^{(i)}$ sa réalisation ». Puisque désormais on a $K$ classes possibles, on a deux possibilités :
+    1. On fait évoluer $Y^{(i)}$ dans $\{0,1, .., K\}$
+    2. On fait évoluer $\mathbf{Y}^{(i)}$ dans  $\{\mathbf e_1,\dots,\mathbf e_K\}$, base canonique de $\mathbb{R}^K$
+
+    On choisis la seconde option :
+
+    $$ \mathbf{Y} = \begin{pmatrix} Y_1 \\ \vdots \\ Y_K \end{pmatrix} $$
+
+    $$ \forall k \in \llbracket 1, K \rrbracket, \qquad \mathbb{P}(Y_k = 1 \mid \mathbf{X} = \mathbf{x}) = \hat{p}_k $$
+
+    > Toutes les probabilités qui suivent sont implicitement conditionnées par $\{\mathbf{X} = \mathbf{x}\}$. Dans un souci de lisibilité, on s'affranchira désormais de la notation conditionnelle et l'on écrira simplement $\mathbb{P}(\cdot)$ pour $\mathbb{P}(\cdot \mid \mathbf{X} = \mathbf{x})$.
+
+    Les classes étant mutuellement exclusives :
+
+    $$ \mathbb{P}(Y_k = 0) = \mathbb{P}\left( \bigcup_{\substack{j=1 \\ j \neq k}}^{K} \{Y_j = 1\} \right)= \sum_{\substack{j=1 \\ j \neq k}}^{K} \mathbb{P}(Y_j = 1) = \sum_{\substack{j=1 \\ j \neq k}}^{K} \hat{p}_j = \left( \sum_{j=1}^{K} \hat{p}_j \right) - \hat{p}_k = 1 - \hat{p}_k $$
+
+    Par conséquent :
+
+    $$Y_k \sim \mathcal{B}(\hat{p}_k)$$
+
+    On trouve la loi de probabilité de $\mathbf{Y}$ grâce à celles de ses composantes $Y_k$.
+
+    $$ \forall i \in \llbracket 1, K \rrbracket, \qquad \mathbb{P}(\mathbf{Y} = \mathbf{e}_i) = \mathbb{P}\left( \{Y_i = 1\} \cap \left( \bigcap_{\substack{k=1 \\ k \neq i}}^{K} \{Y_k = 0\} \right) \right) = \mathbb{P}\left(Y_i = 1\right) = \hat{p}_i $$
+
+    En effet, par mutuelle exclusivité des classes :
+
+    $$ \{\mathbf{Y} = \mathbf{e}_i\} = \{Y_i = 1\} \quad \text{car} \quad \{Y_i = 1\} \subseteq \bigcap_{k \neq i} \{Y_k = 0\}. $$
+
+    On a entièrement définir la loi de $\mathbf{Y}$. Il ne reste plus qu'à écrire _astucieusement_ le terme $\mathbb{P}_{\boldsymbol{\Theta}}\left(\mathbf{Y}^{(i)} = \mathbf{y}^{(i)}\right)$ dans l'expression de la vraisemblance :
+
+
+    $$ \; \forall \mathbf{y} \in \{\mathbf e_1,\dots,\mathbf e_K\}, \qquad \mathbb{P}(\mathbf{Y} = \mathbf{y}) = \prod_{k=1}^{K} \left(\hat{p}_k\right)^{y_k} \; $$
+
+    La suite de la démonstration est connue. En supposant les instances du training set indépendantes, les vecteurs aléatoires $\mathbf{Y}^{(i)}$ sont conditionnellement indépendants sachant les vecteurs d'attributs $\mathbf{x}^{(i)}$ observés :
+
+    $$ \begin{aligned} \mathcal{L}\left(\boldsymbol{\Theta} ; \mathbf{y}^{(1)},\ldots,\mathbf{y}^{(m)}\right) &= \prod_{i=1}^{m} \mathbb{P}_{\boldsymbol{\Theta}}\left(\mathbf{Y}^{(i)} = \mathbf{y}^{(i)}\right) \\[2mm] &= \prod_{i=1}^{m} \prod_{k=1}^{K} \left(\hat{p}_{k}^{(i)}\right)^{y_k^{(i)}} \end{aligned} $$
+
+    Où $\hat{p}_{k}^{(i)}$ est la probabilité que la $i$-ème instance appartienne à la classe d'indice $k$.
+
+    La log-vraisemblance ensuite :
+
+    $$ \begin{aligned} \ln \mathcal{L}\left(\boldsymbol{\Theta} ; \mathbf{y}^{(1)},\ldots,\mathbf{y}^{(m)}\right) &= \sum_{i=1}^{m} \sum_{k=1}^{K} y_k^{(i)} \ln \hat{p}_{k}^{(i)} \end{aligned} $$
+
+    Finalement :
+
+    $$ \begin{aligned} \hat{\boldsymbol{\Theta}}_{\text{EMV}} &= \arg\max_{\boldsymbol{\Theta}} \ \ln \mathcal{L}\left(\boldsymbol{\Theta} ; \mathbf{y}^{(1)},\ldots,\mathbf{y}^{(m)}\right) \\[2mm] &= \arg\max_{\boldsymbol{\Theta}} \ \sum_{i=1}^{m} \sum_{k=1}^{K} y_k^{(i)} \ln \hat{p}_{k}^{(i)} \\[2mm] &= \arg\min_{\boldsymbol{\Theta}} \ \underbrace{-\frac{1}{m} \sum_{i=1}^{m} \sum_{k=1}^{K} y_k^{(i)} \ln \hat{p}_{k}^{(i)}}_{J(\boldsymbol{\Theta})} \end{aligned} $$
+
+    On obtient ainsi la **Categorical Cross-Entropy** :
+
+    $$ \; J(\boldsymbol{\Theta}) = -\frac{1}{m} \sum_{i=1}^{m} \sum_{k=1}^{K} y_k^{(i)} \ln \hat{p}_{k}^{(i)} \; $$
+
+    ### Solution en forme fermée ou descente de gradient
+
+    L'annulation du gradient de la Cross-Entropy **n'admet pas de solution en forme fermée** (on l'admet, on déjà assez fait de calculs comme ça !)
+
+    La bonne nouvelle, c'est que la Cross-Entropy est **convexe**. On procède donc par descente de gradient (batch, stochastic ou mini-batch) pour trouver le vecteur $\boldsymbol{\Theta}$ qui minimise la fonction de coût.
     """)
     return
 
