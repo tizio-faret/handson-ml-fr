@@ -93,7 +93,7 @@ def _(mo):
     mo.md(r"""
     # I. Modèles linéaires régularisés
 
-    Régulariser un modèle d'apprentissage automatique consiste à réduire ses degrés de liberté en vue de réduire sa tendance à l'overfitting ou de le stabiliser. Pour les modèles de régression linéaire, on utilise souvent un système de pénalités (Lasso, Ridge ou Elastic Net - c'est le sujet des section suivantes).
+    Régulariser un modèle d'apprentissage automatique consiste à réduire ses degrés de liberté en vue de réduire sa tendance à l'overfitting ou de le stabiliser. Pour les modèles de régression linéaire, on utilise souvent un système de pénalités (Lasso, Ridge ou Elastic Net - c'est le sujet des sections suivantes).
 
     ## A. Régression Ridge
 
@@ -1660,7 +1660,7 @@ def _(log_reg, penguins, train_test_split, y_logreg):
 
     log_reg_2 = copy.deepcopy(log_reg)
     _ = log_reg_2.fit(X_train_2d, y_train_2d)
-    return X_2d, X_train_2d, log_reg_2, y_train_2d
+    return X_2d, X_train_2d, copy, log_reg_2, y_train_2d
 
 
 @app.cell(hide_code=True)
@@ -1756,7 +1756,7 @@ def _(mo):
 
     > Puisqu'il y autant de vecteurs de paramètres $\boldsymbol{\theta}^{(j)}$ qu'il y a de classes, on les combine généralement dans une matrice $\boldsymbol{\Theta}$ sous forme de vecteur lignes.
 
-    La classe prédite est celle associée à la probabilité la plus haute :
+    Contrairement à la régression logistique, la classe prédite n'est plus déterminée par un seuil : on choisit celle associée à la **probabilité la plus haute** :
 
     $$\hat{y} = \underset{k}{\arg\max}\; \hat{p}_{k}(\mathbf{x})$$
 
@@ -1897,10 +1897,134 @@ def _(mo):
 
     ### Solution en forme fermée ou descente de gradient
 
-    L'annulation du gradient de la Cross-Entropy **n'admet pas de solution en forme fermée** (on l'admet, on déjà assez fait de calculs comme ça !)
+    L'annulation du gradient de la Cross-Entropy **n'admet pas de solution en forme fermée** (on l'admet, on a déjà assez fait de calculs comme ça !)
 
     La bonne nouvelle, c'est que la Cross-Entropy est **convexe**. On procède donc par descente de gradient (batch, stochastic ou mini-batch) pour trouver le vecteur $\boldsymbol{\Theta}$ qui minimise la fonction de coût.
+
+    ### Implémentation
+
+    Le classifieur `LogisticRegression` de Scikit-Learn mobilise automatiquement la régression softmax lorsque le set d'étiquette d'entraînement contient plus de deux classes.
     """)
+    return
+
+
+@app.cell
+def _(X_2d, copy, log_reg_2, penguins, train_test_split):
+    y_softmax = penguins.target
+
+    X_train_sm, X_test_sm, y_train_sm, y_test_sm = train_test_split(
+        X_2d,
+        y_softmax,      
+        test_size=0.25,
+        random_state=42,
+        stratify=y_softmax
+    )
+
+    # Logistic Regression "devient softmax" lorsqu'on fit() avec K > 2 classes. 
+    # Inutile donc d'instancier une nouvelle pipeline.
+    softmax_reg = copy.deepcopy(log_reg_2)
+
+    _ = softmax_reg.fit(X_train_sm, y_train_sm)
+    return X_train_sm, softmax_reg, y_softmax
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    On peut désormais utiliser notre modèle pour prédire l'espèce d'un manchot si l'on connaît les proportions de son bec.
+    """)
+    return
+
+
+@app.cell
+def _(X_train_sm, pd, softmax_reg):
+    nouveau_manchot = pd.DataFrame([[47, 15]], columns=X_train_sm.columns)
+
+    softmax_reg.predict(nouveau_manchot)[0]
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### Visualisation
+
+    Les zones colorées représentent les régions de décision de la régression softmax : pour chaque combinaison de longueur et de profondeur du bec, le modèle prédit la classe dont la probabilité estimée est la plus élevée.
+
+    > Les lignes de niveau indiquent ici la probabilité d’appartenance à la **classe Chinstrap**.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(X_2d, np, pd, plt, softmax_reg, y_softmax):
+    from matplotlib.colors import ListedColormap
+
+    custom_cmap = ListedColormap(["#fafab0", "#9898ff", "#a0faa0"])
+
+    _x0_min, _x0_max = X_2d["culmen_length_mm"].min() - 1, X_2d["culmen_length_mm"].max() + 1
+    _x1_min, _x1_max = X_2d["culmen_depth_mm"].min() - 1, X_2d["culmen_depth_mm"].max() + 1
+
+    x0, x1 = np.meshgrid(
+        np.linspace(_x0_min, _x0_max, 500),
+        np.linspace(_x1_min, _x1_max, 200),
+    )
+
+    _X_new = pd.DataFrame(
+        np.c_[x0.ravel(), x1.ravel()],
+        columns=X_2d.columns,
+    )
+
+    y_proba = softmax_reg.predict_proba(_X_new)
+    y_predict = softmax_reg.predict(_X_new)
+
+    _class_to_index = {
+        classe: i for i, classe in enumerate(softmax_reg.classes_)
+    }
+
+    zz = np.array(
+        [_class_to_index[y] for y in y_predict]
+    ).reshape(x0.shape)
+
+    _chinstrap_idx = np.where(softmax_reg.classes_ == "Chinstrap")[0][0]
+    zz1 = y_proba[:, _chinstrap_idx].reshape(x0.shape)
+
+    plt.figure(figsize=(10, 5))
+
+    plt.plot(
+        X_2d[y_softmax == "Gentoo"]["culmen_length_mm"],
+        X_2d[y_softmax == "Gentoo"]["culmen_depth_mm"],
+        "g^",
+        label="Gentoo",
+    )
+
+    plt.plot(
+        X_2d[y_softmax == "Chinstrap"]["culmen_length_mm"],
+        X_2d[y_softmax == "Chinstrap"]["culmen_depth_mm"],
+        "bs",
+        label="Chinstrap",
+    )
+
+    plt.plot(
+        X_2d[y_softmax == "Adelie"]["culmen_length_mm"],
+        X_2d[y_softmax == "Adelie"]["culmen_depth_mm"],
+        "yo",
+        label="Adélie",
+    )
+
+    plt.contourf(x0, x1, zz, cmap=custom_cmap, alpha=0.6)
+
+    contour = plt.contour(x0, x1, zz1, cmap="hot")
+    plt.clabel(contour, inline=True)
+
+    plt.xlabel("Longueur du bec (mm)")
+    plt.ylabel("Profondeur du bec (mm)")
+    plt.legend(loc="best")
+
+    plt.axis([_x0_min, _x0_max, _x1_min, _x1_max])
+    plt.grid()
+
+    plt.show()
     return
 
 
