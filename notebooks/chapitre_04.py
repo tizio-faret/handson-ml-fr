@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.23.8"
+__generated_with = "0.24.0"
 app = marimo.App(width="medium")
 
 
@@ -2314,13 +2314,13 @@ def _(mo):
 
     /// details | Formalisation mathématique des erreurs - (pour aller plus loin)
 
-    Reprenons le cadre de génération utilisé depuis le début du chapitre : le label s'écrit comme une fonction **déterministe** des prédicteurs, corrompue par un bruit additif.
+    Reprenons le cadre de génération utilisé depuis le début du chapitre : le label s'écrit comme une fonction déterministe des prédicteurs, corrompue par un bruit additif nul en moyenne.
 
     $$y = f(\mathbf{x}) + \epsilon, \qquad \mathbb{E}[\epsilon] = 0, \quad \mathbb{V}(\epsilon) = \sigma^2$$
 
     La fonction $f$ est la **structure sous-jacente** que l'on cherche à approcher (la _fonction réelle_ qui génère les distributions de points) ; $\epsilon$ est un bruit aléatoire de moyenne nulle.
 
-    L'entraînement, lui, produit un modèle à partir d'un training set. Mais ce jeu n'est qu'un **tirage** parmi tous les training sets possibles : avec d'autres données, on aurait obtenu d'autres paramètres $\hat{\boldsymbol{\theta}}$, donc un autre modèle. Par conséquent la** fonction hypothèse** apprise est **aléatoire** ; pour alléger, on note $\hat{f}(\mathbf{x}_0)$ sa prédiction en une instance $\mathbf{x}_0$ fixée :
+    L'entraînement, lui, produit un modèle à partir d'un training set. Mais ce jeu n'est qu'un **tirage** parmi tous les training sets possibles : avec d'autres données, on aurait obtenu d'autres paramètres $\hat{\boldsymbol{\theta}}$, donc un autre modèle. Par conséquent la** fonction hypothèse** apprise est **aléatoire** ; pour alléger, on note $\hat{f}(\mathbf{x}_0)$ sa prédiction évaluée en une instance $\mathbf{x}_0$ donnée :
 
     $$\hat{f}(\mathbf{x}_0) := h_{\hat{\boldsymbol{\theta}}}(\mathbf{x}_0)$$
 
@@ -2334,7 +2334,7 @@ def _(mo):
 
     C'est un idéal théorique, il faudrait toute la distribution pour la calculer.
 
-    #### Erreur de validation
+    #### Erreur de validation ${\widehat R_V(\hat f)}_1$
 
     Cette erreur est simplement l'estimateur empirique de $R(\hat f)$ sur un échantillon $V$ de $p$ instances inédites (i.e. issues du test set).
 
@@ -2342,9 +2342,9 @@ def _(mo):
 
     NB : On peut prouver facilement que $\mathbb{E}_{V} \big[\widehat R_V(\hat f)- R(\hat f)\big]=0$ c'est-à-dire que cet estimateur est **sans biais**.
 
-    Rigoureusement, cette mesure correspond à la RMSE que l'on calcule sur le test set une fois notre modèle définitivement fixé. Pour avoir une idée de la capacité de généralisation sans induire un _data snooping bias_, on l'approche par validation croisée avec `cross_validate` en faisant la moyenne des erreurs sur les différents folds.
+    Rigoureusement, cette mesure correspond à la RMSE que l'on calcule sur le test set une fois notre modèle définitivement fixé. Pour avoir une idée de la capacité de généralisation du modèle sans induire un _data snooping bias_, on l'approche par validation croisée avec `cross_validate` en faisant la moyenne des erreurs sur les différents folds.
 
-    #### Erreur d'entraînement
+    #### Erreur d'entraînement ${\widehat R_V(\hat f)}_2$
 
     L'erreur d'entraînement ${\widehat R_V(\hat f)}_2$ est un estimateur **biaisé** de $R(\hat f)$.
 
@@ -2492,56 +2492,9 @@ def _(mo):
 
     $$\underbrace{\mathbb{E}_{\mathcal{D}}\,\mathbb{E}_{(\mathbf{x}, y)}\big[(y - \hat f(\mathbf{x}))^2\big]}_{\text{erreur de généralisation, moyennée sur } \mathcal{D}} = \mathbb{E}_{\mathbf{x_0}}\Big[\,\underbrace{\mathbb{E}_{\mathcal{D},\,\epsilon}\big[(y - \hat f(\mathbf{x}_0))^2\big]}_{\text{objet de la démonstration}}\,\Big]$$
 
-    Ainsi $\mathbb{E}_{\mathcal{D},\,\epsilon}\big[(y - \hat f(\mathbf{x}_0))^2\big]$ mesure l'erreur quadratique en $\mathbf{x}_0$, moyennée à la fois sur le bruit $\epsilon$ de l'instance test et sur le tirage du training set. En notant $\bar{f}(\mathbf{x}_0) = \mathbb{E}[\hat{f}(\mathbf{x}_0)]$ la prédiction du **modèle moyen** (celui qu'on obtiendrait en moyennant une infinité de modèles entraînés), cette erreur se décompose en **trois termes** :
+    Ainsi $\mathbb{E}_{\mathcal{D},\,\epsilon}\big[(y - \hat f(\mathbf{x}_0))^2\big]$ mesure l'erreur quadratique en $\mathbf{x}_0$, moyennée à la fois sur le bruit $\epsilon$ de l'instance test et sur le tirage du training set. En notant $\bar{f}(\mathbf{x}_0) = \mathbb{E}[\hat{f}(\mathbf{x}_0)]$ la prédiction du **modèle moyen** (celui qu'on obtiendrait en moyennant une infinité de modèles entraînés), on peut montrer que cette erreur se décompose en **trois termes** :
 
     $$\mathbb{E}_{\mathcal{D},\,\epsilon}\big[(y - \hat f(\mathbf{x}_0))^2\big] = \underbrace{\big(f(\mathbf{x}_0) - \bar{f}(\mathbf{x}_0)\big)^2}_{\text{biais}^2} \;+\; \underbrace{\mathbb{E}\!\left[\big(\hat{f}(\mathbf{x}_0) - \bar{f}(\mathbf{x}_0)\big)^2\right]}_{\text{variance}} \;+\; \underbrace{\sigma^2}_{\text{erreur irréductible}}$$
-
-    /// details | Décomposition biais-variance - démonstration (pour aller _encore_ loin)
-
-    **Étape 0 - contexte et notations**
-
-    On suppose que le bruit $\epsilon$ de l'instance test est :
-    1. **indépendant** du training set $\mathcal{D}$
-    2. **centré** ($\mathbb{E}[\epsilon]=0$)
-    3. de variance $\sigma^2 = \mathbb{V}(\epsilon)$.
-
-    Pour alléger, on omet la dépendance en $\mathbf{x}_0$ et on note :
-
-    $$f = f(\mathbf{x}_0), \quad \hat f = \hat f(\mathbf{x}_0), \quad \bar f = \bar f(\mathbf{x}_0) = \mathbb{E}_{\mathcal{D}}[\hat f]$$
-
-    On rappelle que $y = f + \epsilon$ et que notre objectif est de décomposer $\mathbb{E}_{\mathcal{D},\,\epsilon}\big[(y - \hat f)^2\big]$.
-
-    **Étape 1 — isoler le bruit.** En écrivant $y - \hat f = (f - \hat f) + \epsilon$ et en développant le carré :
-
-    $$(y - \hat f)^2 = (f - \hat f)^2 + 2\,\epsilon\,(f - \hat f) + \epsilon^2$$
-
-    On prend l'espérance sur $\mathcal{D}$ et $\epsilon$. Le terme croisé se **factorise** car $\epsilon \perp \mathcal{D}$, puis **s'annule** car $\mathbb{E}[\epsilon]=0$ :
-
-    $$\mathbb{E}_{\mathcal{D},\epsilon}\big[2\,\epsilon\,(f - \hat f)\big] = 2\,\underbrace{\mathbb{E}[\epsilon]}_{=\,0}\;\mathbb{E}_{\mathcal{D}}\big[f - \hat f\big] = 0$$
-
-    La quantité $f - \hat f$ ne dépendant que de $\mathcal{D}$, et $\mathbb{E}_\epsilon[\epsilon^2] = \mathbb{V}(\epsilon) = \sigma^2$ (le bruit est centré), il reste :
-
-    $$\mathbb{E}_{\mathcal{D},\epsilon}\big[(y - \hat f)^2\big] = \underbrace{\mathbb{E}_{\mathcal{D}}\big[(f - \hat f)^2\big]}_{\text{erreur d'estimation}} + \;\sigma^2$$
-
-    **Étape 2 — faire apparaître le modèle moyen.** On introduit $\bar f$ dans le premier terme via $f - \hat f = (f - \bar f) + (\bar f - \hat f)$ :
-
-    $$(f - \hat f)^2 = (f - \bar f)^2 + 2\,(f - \bar f)(\bar f - \hat f) + (\bar f - \hat f)^2$$
-
-    On prend l'espérance sur $\mathcal{D}$. De nouveau le terme croisé s'annule : $f - \bar f$ est une constante indépendante de $\mathcal{D}$ ($f$ est le modèle théorique et $\bar f$ est déjà moyenné sur $\mathcal{D}$), et $\mathbb{E}_{\mathcal{D}}[\bar f - \hat f] = \bar f - \mathbb{E}_{\mathcal{D}}[\hat f] = \bar f - \bar f = 0$ par **définition** de $\bar f$ :
-
-    $$\mathbb{E}_{\mathcal{D}}\big[2\,(f - \bar f)(\bar f - \hat f)\big] = 2\,(f - \bar f)\,\underbrace{\mathbb{E}_{\mathcal{D}}\big[\bar f - \hat f\big]}_{=\,0} = 0$$
-
-    Il vient :
-
-    $$\mathbb{E}_{\mathcal{D}}\big[(f - \hat f)^2\big] = \underbrace{(f - \bar f)^2}_{\text{biais}^2} + \underbrace{\mathbb{E}_{\mathcal{D}}\big[(\hat f - \bar f)^2\big]}_{\text{variance}}$$
-
-    On reconnaît la formule de la variance $\mathbb{V}_{\mathcal{D}}\big(\hat f(\mathbf{x}_0)\big) = \mathbb{E}_{\mathcal{D}}\big[(\hat f - \bar f)^2\big]$, puisque $\bar f = \mathbb{E}_{\mathcal{D}}[\hat f]$.
-
-    **Conclusion.** En réinjectant ce résultat dans celui de l'étape 1 :
-
-    $$\mathbb{E}_{\mathcal{D},\,\epsilon}\big[(y - \hat f(\mathbf{x}_0))^2\big] = \underbrace{\big(f(\mathbf{x}_0) - \bar f(\mathbf{x}_0)\big)^2}_{\text{biais}^2} + \underbrace{\mathbb{E}_{\mathcal{D}}\big[(\hat f(\mathbf{x}_0) - \bar f(\mathbf{x}_0))^2\big]}_{\text{variance}} + \underbrace{\sigma^2}_{\text{erreur irréductible}}$$
-
-    ///
 
     Par linéarité de l'espérance, c'est l'erreur de généralisation elle-même qui se décompose en **trois contributions**.
 
@@ -2549,15 +2502,17 @@ def _(mo):
 
     ### Analyse des 3 contributions
 
-    1. L'**erreur irréductible** $\sigma^2=\mathbb{V}(\epsilon)$ porte bien son nom : elle ne dépend ni du modèle ni du training set, donc même le modèle parfait $\hat{f} = f$ la subirait, puisqu'aucun apprentissage ne peut deviner le bruit $\epsilon$.
-    2. Le **biais** $\big(f - \bar{f}\big)^2$ mesure l'écart entre la structure réelle $f$ et le modèle moyen $\bar{f}$. Il est élevé quand la famille de modèles est **trop rigide** pour épouser $f$. C'est la signature de l'**underfitting**.
-    3. La **variance** $\mathbb{V}(\hat{f})$ mesure la sensibilité du modèle au training set : de combien $\hat{f}$ fluctue-t-il lorsqu'on change les données ? Elle est élevée quand le modèle est **trop flexible** et épouse le bruit propre à chaque jeu. C'est la signature de l'**overfitting**.
+    1. L'erreur irréductible correspond à la variance du bruit. Elle ne dépend ni du modèle ni du training set, donc même le modèle théorique exact $\hat{f} = f$ la subirait.
+
+    2. Le biais mesure l'écart entre la structure réelle $f$ et le modèle moyen $\bar{f}$. Il est élevé quand le choix de la famille de modèles est biaisé, celle-ci étant alors trop "rigide" pour épouser $f$. C'est la signature de l'**underfitting**.
+
+    3. La variance mesure la sensibilité du modèle au training set : de combien $\hat{f}$ fluctue-t-il lorsqu'on change les données ? Elle est élevée quand le modèle est trop flexible et épouse le bruit propre à chaque jeu. C'est la signature de l'**overfitting**.
 
     C'est ce vocabulaire, **biais élevé** pour l'underfitting, **variance élevée** pour l'overfitting, que l'on mobilise pour lire les learning curves dans la section suivante.
 
     ### Visualisation
 
-    La décomposition précédente est un énoncé sur le **tirage du training set** $\mathcal{D}$ : elle moyenne l'erreur sur tous les jeux d'entraînement possibles. La visualisation suivante est générée en tirant $K$ training sets issus du même $f+\epsilon$ et en ajustant sur chacun un polynôme dont on règle le degré (la **complexité**).
+    La décomposition précédente est un énoncé sur le **tirage du training set** $\mathcal{D}$ : elle moyenne l'erreur sur tous les jeux d'entraînement possibles. La visualisation suivante est générée en tirant $K$ training sets issus du même $f+\epsilon$ et en ajustant sur chacun un polynôme de degré différent.
 
     Ce graphique nourrit l'intuition de compréhension deux objets : le **modèle moyen** $\bar f = \mathbb{E}_{\mathcal{D}}[\hat f]$ (« celui qu'on obtiendrait en moyennant une infinité de modèles ») et la **variance** comprise comme *dispersion de $\hat f$ d'un tirage à l'autre*.
 
@@ -2758,65 +2713,12 @@ def _(mo):
 
     ### Interpréter les learning curves <a id="interpreter-learning-curve"></a>
 
-    Pour faire le lien entre nos 3 contributions et les learnings curves, il faut s'intéresser à la façon dont ces termes se comportent au fur et à mesure que le training set grossit (i.e. que $m$ grossit) :
+    Pour faire le lien entre nos 3 contributions et les learnings curves, il faut s'intéresser à la façon dont le biais et la variance se comportent lorsque le training set grossit (i.e. que $m$ grossit) :
 
-    1. **$\sigma^2$ : plat.** Le bruit ne dépend ni du modèle ni des données.
-    2. **biais : essentiellement plat.** Il est fixé par la _famille_ de modèles, pas par la quantité de données. Quand $m \to \infty$, le modèle moyen $\bar f$ tend vers le meilleur modèle de la classe $f^\star$, donc le biais tend vers $f - f^\star - \text{constante}$. La constante est éventuellement nulle si la classe peut représenter $f$.
-    3. **variance : décroissante et tend vers $0$**. Plus de données $\Rightarrow$ $\hat f$ se stabilise d'un training set à l'autre $\Rightarrow$ les fluctuations s'éteignent.
+    1. **biais : essentiellement plat.** Il est fixé par la _famille_ de modèles, pas par la quantité de données. Quand $m \to \infty$, le modèle moyen $\bar f$ tend vers le meilleur modèle de la classe $f^\star$, donc le biais tend vers $f - f^\star - \text{constante}$. La constante est éventuellement nulle si la classe peut représenter $f$.
+    2. **variance : décroissante et tend vers $0$**. Plus de données $\Rightarrow$ $\hat f$ se stabilise d'un training set à l'autre $\Rightarrow$ les fluctuations s'éteignent.
 
     En conséquence, la hauteur du plateau où se rejoignent les courbes correspond à la somme du biais et du bruit. La variance s'observe sur l'écart entre les courbes.
-
-    /// details | Interprétation graphique - démonstration (pour aller _vraiment_ plus loin)
-
-    On se propose de démontrer ici le lien entre les composantes de l'erreur de généralisation et l'interprétation des learnings curves : « _la hauteur du plateau où se rejoignent les courbes correspond à la somme du biais et du bruit. La variance s'observe sur l'écart entre les courbes _» .
-
-    **Rappels :**
-
-    - Erreur de généralisation : $R(\hat f) = \mathbb{E}_{(\mathbf{x},y)}\big[(y - \hat f(\mathbf{x}))^2\big]$.
-
-    - Erreur de validation : ${\widehat R_{V_{\text{test}}}(\hat f)}_1 = \frac{1}{p}\sum_{j=1}^{p}\big(y^{(j)} - \hat f(\mathbf{x}^{(j)})\big)^2$ sans biais donc $\mathbb{E}_V\big[{\widehat R_{V_{\text{test}}}(\hat f)}_1\big] = R(\hat f)$
-
-    - Erreur d'entraînement : ${\widehat R_{V_{\text{train}}}(\hat f)}_2 = \frac{1}{p}\sum_{j=1}^{p}\big(y^{(j)} - \hat f(\mathbf{x}^{(j)})\big)^2$
-
-    **Notations :**
-
-    - On note $\hat f_i := \hat f(\mathbf{x}^{(i)})$ et $f_i := f(\mathbf{x}^{(i)})$ , où $\mathbf{x}^{(i)}$ est l'instance d'indice $i$ du test set.
-
-    **Objectif :**
-
-    - On étudie l'espérance des deux courbes sur le tirage du training set $\mathcal{D}$, à taille $m$ fixée.
-
-    #### Courbe de l'erreur de validation
-
-    En moyennant sur $\mathcal{D}$ et $V_{\text{test}}$ et en réinjectant la décomposition biais-variance (intégrée sur $\mathbf{x}_0$, comme on l'a fait [ici](#etape-demo)) :
-
-    $$\mathbb{E}_{\mathcal{D},V}\big[{\widehat R_V(\hat f)}_1\big] = \mathbb{E}_{\mathcal{D}}\big[R(\hat f)\big] = \mathbb{E}_{\mathbf{x}_0}\Big[\,\underbrace{(f - \bar f)^2}_{\text{biais}^2} + \underbrace{\mathbb{V}_{\mathcal{D}}(\hat f)}_{\text{variance}}\,\Big] + \sigma^2$$
-
-    On peut montrer grâce au théorème central limite que la matrice de covariance des paramètres estimés $\hat{\theta}$ est proportionnelle à $\frac{1}{m}$. Par conséquent, quand $m \to \infty$, la variance tend vers $0$ : **la courbe de validation tend vers le plateau $\text{biais}^2 + \sigma^2$**.
-
-    #### Courbe de l'erreur d'entraînement
-
-    On prend pour $V'$ le training set lui-même ($p = m$). Problème : chaque $(\mathbf{x}^{(i)}, y^{(i)})$ a servi à fabriquer $\hat f$, donc $\hat f_i$ n'est plus indépendant de $y^{(i)}$ ; le terme croisé qui s'annulait à l'étape 1 de la décomposition ne s'annule plus.
-
-    Pour **mesurer cet écart**, on introduit en chaque point la quantité ${y'}^{(i)} = f_i + {\epsilon'}^{(i)}$, de même loi mais avec ${\epsilon'}^{(i)} \perp \mathcal{D}$. On appelle **optimisme** l'écart en espérance entre l'erreur sur ces quantités et l'erreur d'entraînement :
-
-    $$\text{optimisme}(m) = \mathbb{E}_{\mathcal{D},\,\epsilon'}\Big[\tfrac{1}{m}\sum_{i=1}^{m} ({y'}^{(i)} - \hat f_i)^2\Big] - \mathbb{E}_{\mathcal{D}}\big[{\widehat R_V(\hat f)}_2\big]$$
-
-    En développant les deux carrés, les termes $\mathbb{E}[{y'}^2] = \mathbb{E}[y^2]$ et $\hat f_i^2$ se compensent ; il reste, en chaque point, $-2\,\mathbb{E}[\hat f_i\,{y'}^{(i)}] + 2\,\mathbb{E}[\hat f_i\,y^{(i)}]$. Or ${y'}^{(i)} \perp \hat f_i$ donne $\mathbb{E}[\hat f_i\,{y'}^{(i)}] = f_i\,\mathbb{E}[\hat f_i]$, tandis que $\mathbb{E}[\hat f_i\,y^{(i)}] = \mathrm{Cov}(\hat f_i, y^{(i)}) + f_i\,\mathbb{E}[\hat f_i]$. Les termes en $f_i\,\mathbb{E}[\hat f_i]$ se télescopent :
-
-    $$\text{optimisme}(m) = \frac{2}{m}\sum_{i=1}^{m} \mathrm{Cov}\big(\hat f_i,\, y^{(i)}\big) \;\ge\; 0$$
-
-    Cette covariance mesure de combien la prédiction $\hat f_i$ suit son propre label : c'est la signature de la **complexité** du modèle, qui alimente la variance.
-
-    L'identité ci-dessus se réécrit, le membre de gauche partageant **le même plateau** que la validation (même décomposition biais-variance, aux points $\mathbf{x}^{(i)}$) :
-
-    $$ \mathbb{E}_{\mathcal{D}}\big[\widehat R_V(\hat f)_2\big] + \underbrace{\text{optimisme}(m)\vphantom{\mathbb{E}_{\mathcal{D},\,\epsilon'}\Big[\tfrac{1}{m}\sum_{i=1}^{m}({y'}^{(i)}-\hat f_i)^2\Big]}}_{\xrightarrow{\,m\to\infty\,}0} = \underbrace{\mathbb{E}_{\mathcal{D},\,\epsilon'}\Big[\tfrac{1}{m}\sum_{i=1}^{m}({y'}^{(i)}-\hat f_i)^2\Big]}_{\xrightarrow{\,m\to\infty\,}\text{biais}^2+\sigma^2} $$
-
-    #### Conclusion
-
-    Les deux courbes rejoignent donc théoriquement le même plateau $\text{biais}^2 + \sigma^2$ (variance et optimisme tendent vers $0$) : c'est **la hauteur du plateau qui donne biais + bruit**. D'autre part, **l'écart résiduel à $m$ fini est gouverné par la complexité du modèle (optimisme), donc par la variance**. On retrouve exactement les deux règles de lecture.
-
-    ///
 
     En pratique, on se contente de retenir les règles suivantes, qui permettent généralement d'évaluer correctement la capacité de généralisation du modèle, indépendamment de sa nature (régression linéaire, polynomiale, SVM, forêt aléatoire etc..).
 
@@ -2828,7 +2730,7 @@ def _(mo):
       - Erreur d'entraînement basse
       - Écart asymptotique important
 
-    Par conséquent, un bon ajustement serait marqué par une faible erreur et un faible écart. Et si les deux courbes bougent encore beaucoup au bord droit, c'est probablement qu'on a pas assez de données.
+    Par conséquent, un bon ajustement serait marqué par une faible erreur et un faible écart. Et si les deux courbes bougent encore beaucoup au bord droit, c'est probablement que l'on a pas assez de données.
 
     > Certains aspects de ces courbes restent largement imputables à la nature du modèle, notamment le fait que l'erreur d'entraînement augmente / reste proche de 0, ou que l'écart se résorbe / persiste avec les données.
 
