@@ -18,7 +18,7 @@ Notebooks écrits avec Marimo : stockés en fichiers Python, réactifs (les cell
 | 4 | Training models (1) | [Notebook statique](https://tizio-faret.github.io/handson-ml-fr/chapitre_04.html) | [Molab](https://molab.marimo.io/github/tizio-faret/handson-ml-fr/blob/main/notebooks/chapitre_04.py/server) |
 | 4 | Training models (2) | [Notebook statique](https://tizio-faret.github.io/handson-ml-fr/chapitre_04_2.html) | [Molab](https://molab.marimo.io/github/tizio-faret/handson-ml-fr/blob/main/notebooks/chapitre_04_2.py/server) |
 
-> statique = lecture immédiate ; Molab = exécution et modification en ligne.
+> Notebook statique = lecture immédiate ; Molab = exécution et modification en ligne.
 
 Les chapitres suivants seront ajoutés au fil du temps.
 
